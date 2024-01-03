@@ -14,13 +14,16 @@ class CC3DProcess(SimServiceProcess):
         if config is None:
             config = dict(service_name=SERVICE_NAME,
                           args=[],
-                          kwargs={'specs': _def_specs()})
+                          kwargs={'specs': _def_specs()},
+                          annotations={})
         if 'service_name' not in config.keys():
             config['service_name'] = SERVICE_NAME
         if 'args' not in config.keys():
             config['args'] = []
         if 'kwargs' not in config.keys():
             config['kwargs'] = dict()
+        if 'annotations' not in config.keys():
+            config['annotations'] = dict()
         if 'specs' not in config['kwargs'].keys():
             config['kwargs']['specs'] = _def_specs()
 

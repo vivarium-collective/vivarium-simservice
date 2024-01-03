@@ -1,6 +1,7 @@
 """
 Derived from the example available at https://github.com/tjsego/simservice/tree/develop/examples/ExplicitCell.
 """
+from process_bigraph import Composite
 
 from cc3d.core import PyCoreSpecs as pcs
 from cc3d.core.PySteppables import SteppableBasePy
@@ -11,6 +12,9 @@ from typing import List, Tuple
 
 from cc3d_simservice import CC3DProcess
 from tf_simservice import TissueForgeProcess
+
+from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name
+from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name
 
 cell_type_name = 'cell'
 
@@ -66,24 +70,92 @@ if __name__ == '__main__':
 
     # Create a CC3D process and annotate it
 
-    cc3d_process = CC3DProcess(config={'kwargs': {'specs': specs,
-                                                  'steppables': [InterfaceSteppable]}})
-    cc3d_process.annotations['mask'] = {'type': 'Any',
-                                        'get': 'cell_mask'}
+    # cc3d_process = CC3DProcess(config={'kwargs': {'specs': specs,
+    #                                               'steppables': [InterfaceSteppable]},
+    #                                    'annotations': {
+    #                                        'mask': {
+    #                                            'type': 'Any',
+    #                                            'get': 'cell_mask'
+    #                                        }
+    #                                    }})
+    #
+    # # Create a Tissue Forge process. The underlying service is constructed ad hoc and so requires not customization here
+    #
+    # tf_process = TissueForgeProcess(config={'kwargs': {'dim': dim,
+    #                                                    'cells': cells,
+    #                                                    'per_dim': 5,
+    #                                                    'num_steps': 1000}})
+    #
+    # # Initialize a cell using the underlying SimService interfaces
+    #
+    # loc = []
+    # for i in range(10, 20):
+    #     for j in range(10, 20):
+    #         loc.append((i, j))
+    # cell_id = cc3d_process.service.add_cell(loc)
+    # tf_process.service.add_domain(cell_id, cc3d_process.service.cell_mask())
+    # tf_process.service.equilibrate()
+    #
+    # update_cc3d = cc3d_process.update(state={'mask': cc3d_process.service.cell_mask()},
+    #                                   interval=1)
+    # print('update_cc3d')
+    # print(update_cc3d)
+    # update_tf = tf_process.update(state={'mask': cc3d_process.service.cell_mask()},
+    #                               interval=1)
+    # print('update_tf')
+    # print(update_tf)
 
-    # Create a Tissue Forge process. The underlying service is constructed ad hoc and so requires not customization here
+    mask = np.zeros(shape=(dim[0], dim[1]), dtype=int)
+    mask[10:20, 10:20] = 1
 
-    tf_process = TissueForgeProcess(config={'kwargs': {'dim': dim,
-                                                       'cells': cells,
-                                                       'per_dim': 5,
-                                                       'num_steps': 1000}})
+    composite = {
+        'state': {
+            'mask': {
+                '_type': 'numpy_array',
+                '_value': mask
+            },
+            'tissue-forge': {
+                '_type': 'process',
+                'address': 'local:!tf_simservice.TissueForgeProcess.TissueForgeProcess',
+                'config': {
+                    'service_name': tf_service_name,
+                    'args': [],
+                    'kwargs': {
+                        'dim': dim,
+                        'cells': cells,
+                        'per_dim': 5,
+                        'num_steps': 1000
+                    }
+                },
+                'wires': {
+                    'mask': ['mask']
+                }
+            },
+            'cc3d': {
+                '_type': 'process',
+                'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
+                'config': {
+                    'service_name': cc3d_service_name,
+                    'args': [],
+                    'kwargs': {
+                        'specs': specs,
+                        'steppables': [InterfaceSteppable]
+                    },
+                    'annotations': {
+                        'mask': {
+                            'type': 'any',
+                            'get': 'cell_mask'
+                        }
+                    }
+                },
+                'wires': {
+                    'mask': ['mask']
+                }
+            },
+        }
+    }
 
-    # Initialize a cell using the underlying SimService interfaces
-
-    loc = []
-    for i in range(10, 20):
-        for j in range(10, 20):
-            loc.append((i, j))
-    cell_id = cc3d_process.service.add_cell(loc)
-    tf_process.service.add_domain(cell_id, cc3d_process.service.cell_mask())
-    tf_process.service.equilibrate()
+    sim = Composite(composite)
+    sim.run(1.0)
+    results = sim.gather_results()
+    print(results)

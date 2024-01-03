@@ -14,20 +14,24 @@ class TissueForgeProcess(SimServiceProcess):
         if config is None:
             config = dict(service_name=SERVICE_NAME,
                           args=[],
-                          kwargs=_def_kwargs())
+                          kwargs=_def_kwargs(),
+                          annotations={})
         if 'service_name' not in config.keys():
             config['service_name'] = SERVICE_NAME
         if 'args' not in config.keys():
             config['args'] = []
         if 'kwargs' not in config.keys():
             config['kwargs'] = _def_kwargs()
+        if 'annotations' not in config.keys():
+            config['annotations'] = {}
         for k, v in _def_kwargs().items():
             if k not in config['kwargs'].keys():
                 config['kwargs'][k] = v
+        if 'domain' not in config['annotations'].keys():
+            config['annotations']['domain'] = {'type': 'any',
+                                               'get': 'get_domains'}
+        if 'mask' not in config['annotations'].keys():
+            config['annotations']['mask'] = {'type': 'any',
+                                             'set': 'set_next_mask'}
 
         super().__init__(config)
-
-        self.annotations['domains'] = {'type': 'Any',
-                                       'get': 'get_domains'}
-        self.annotations['mask'] = {'type': 'Any',
-                                    'set': 'set_next_mask'}

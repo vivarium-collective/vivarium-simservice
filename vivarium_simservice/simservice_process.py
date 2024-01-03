@@ -6,12 +6,14 @@ class SimServiceProcess(Process):
     config_schema = {
         'service_name': 'string',
         'args': 'list[any]',
-        'kwargs': 'tree[any]'}
+        'kwargs': 'tree[any]',
+        'annotations': 'tree[any]'
+    }
 
     def __init__(self, config=None):
         super().__init__(config)
 
-        self.annotations = dict()
+        self.annotations = self.config['annotations']
         """To be particularized by both a service provider and user"""
 
         service_name = self.config['service_name']
@@ -29,6 +31,7 @@ class SimServiceProcess(Process):
         self.on_start(config)
 
     def schema(self):
+        # todo: maybe inform/warn when annotations are empty
         return {
             key: {
                 '_type': schema['type'],
@@ -36,6 +39,8 @@ class SimServiceProcess(Process):
             for key, schema in self.annotations.items()}
 
     def update(self, state, interval):
+        print(type(self), state)
+
         for key, schema in self.annotations.items():
             if 'set' in schema and key in state:
                 set_method = getattr(self.service, schema['set'])
@@ -47,7 +52,7 @@ class SimServiceProcess(Process):
         for key, schema in self.annotations.items():
             if 'get' in schema and key in state:
                 get_method = getattr(self.service, schema['get'])
-                update[key] = get_method(state[key])
+                update[key] = get_method()
 
         return update
 
