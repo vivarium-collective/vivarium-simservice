@@ -32,11 +32,18 @@ class SimServiceProcess(Process):
 
     def schema(self):
         # todo: maybe inform/warn when annotations are empty
-        return {
+
+        schema = {
             key: {
                 '_type': schema['type'],
                 '_apply': 'set'}
             for key, schema in self.annotations.items()}
+
+        # TODO -- make it so we can get different inputs/outputs from self.annotations
+        return {
+            'inputs': schema,
+            'outputs': schema
+        }
 
     def update(self, state, interval):
         print(type(self), state)

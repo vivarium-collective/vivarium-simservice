@@ -105,14 +105,20 @@ if __name__ == '__main__':
     # print('update_tf')
     # print(update_tf)
 
+    # define mask apply function
+    def set_next_mask(current, update, bindings, core):
+        return update
+
     mask = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     mask[10:20, 10:20] = 1
 
     composite = {
         'state': {
             'mask': {
-                '_type': 'numpy_array',
-                '_value': mask
+                '_type': 'array',
+                'value': mask,
+                'shape': (dim[0], dim[1]),
+                'data': 'int'
             },
             'tissue-forge': {
                 '_type': 'process',
@@ -125,9 +131,20 @@ if __name__ == '__main__':
                         'cells': cells,
                         'per_dim': 5,
                         'num_steps': 1000
+                    },
+                    'annotations': {
+                        'mask': {
+                            '_type': 'array',
+                            '_shape': (dim[0], dim[1]),
+                            '_data': 'int',
+                            '_apply': 'set',
+                        }
                     }
                 },
-                'wires': {
+                'inputs': {
+                    'mask': ['mask_initial']
+                },
+                'outputs': {
                     'mask': ['mask']
                 }
             },
@@ -143,13 +160,22 @@ if __name__ == '__main__':
                     },
                     'annotations': {
                         'mask': {
-                            'type': 'any',
-                            'get': 'cell_mask'
+                            '_type': 'array',
+                            '_shape': (dim[0], dim[1]),
+                            '_data': 'int',
+                            '_apply': 'set',
                         }
+                        # 'mask': {
+                        #     'type': 'any',
+                        #     'get': 'cell_mask'
+                        # }
                     }
                 },
-                'wires': {
+                'inputs': {
                     'mask': ['mask']
+                },
+                'outputs': {
+                    'mask': ['mask_final']  # TODO -- where does this go?
                 }
             },
         }

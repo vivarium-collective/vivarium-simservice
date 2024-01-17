@@ -31,7 +31,12 @@ class TissueForgeProcess(SimServiceProcess):
             config['annotations']['domain'] = {'type': 'any',
                                                'get': 'get_domains'}
         if 'mask' not in config['annotations'].keys():
-            config['annotations']['mask'] = {'type': 'any',
-                                             'set': 'set_next_mask'}
+            def set_next_mask(current, update, bindings, core):
+                return update
+
+            config['annotations']['mask'] = {
+                '_type': 'array',
+                '_apply': set_next_mask  # TODO -- what is this???
+            }
 
         super().__init__(config)
