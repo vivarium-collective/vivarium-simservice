@@ -15,6 +15,7 @@ from tf_simservice import TissueForgeProcess
 
 from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name
 from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name
+from vivarium_simservice.emitter import get_emitter_schema
 
 cell_type_name = 'cell'
 
@@ -112,6 +113,7 @@ if __name__ == '__main__':
     mask = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     mask[10:20, 10:20] = 1
 
+    emitter_schema = get_emitter_schema(target_path=['mask'])
     composite = {
         'state': {
             'mask': {
@@ -120,6 +122,7 @@ if __name__ == '__main__':
                 'shape': (dim[0], dim[1]),
                 'data': 'int'
             },
+            **emitter_schema,
             'tissue-forge': {
                 '_type': 'process',
                 'address': 'local:!tf_simservice.TissueForgeProcess.TissueForgeProcess',
@@ -133,20 +136,23 @@ if __name__ == '__main__':
                         'num_steps': 1000
                     },
                     'annotations': {
-                        'mask': {
-                            '_type': 'array',
-                            '_shape': (dim[0], dim[1]),
-                            '_data': 'int',
-                            '_apply': 'set',
+                        'inputs': {
+                            'mask': {
+                                'type': 'array',
+                                # TODO -- should we pass additional info like this?
+                                # '_shape': (dim[0], dim[1]),
+                                # '_data': 'int',
+                                '_apply': 'set',
+                            }
                         }
                     }
                 },
                 'inputs': {
-                    'mask': ['mask_initial']
-                },
-                'outputs': {
                     'mask': ['mask']
-                }
+                },
+                # 'outputs': {
+                #     'mask': ['mask_final']
+                # }
             },
             'cc3d': {
                 '_type': 'process',
@@ -159,29 +165,28 @@ if __name__ == '__main__':
                         'steppables': [InterfaceSteppable]
                     },
                     'annotations': {
-                        'mask': {
-                            '_type': 'array',
-                            '_shape': (dim[0], dim[1]),
-                            '_data': 'int',
-                            '_apply': 'set',
+                        'outputs': {
+                            'mask': {
+                                'type': 'array',
+                                # TODO -- should we pass additional info like this?
+                                # '_shape': (dim[0], dim[1]),
+                                # '_data': 'int',
+                                # '_apply': 'set',
+                            }
                         }
-                        # 'mask': {
-                        #     'type': 'any',
-                        #     'get': 'cell_mask'
-                        # }
                     }
                 },
-                'inputs': {
-                    'mask': ['mask']
-                },
+                # 'inputs': {
+                #     'mask': ['mask_initial']
+                # },
                 'outputs': {
-                    'mask': ['mask_final']  # TODO -- where does this go?
+                    'mask': ['mask']  # TODO -- where does this go?
                 }
             },
         }
     }
 
     sim = Composite(composite)
-    sim.run(1.0)
+    sim.run(2)
     results = sim.gather_results()
     print(results)

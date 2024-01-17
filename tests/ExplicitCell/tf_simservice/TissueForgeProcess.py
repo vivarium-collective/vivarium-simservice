@@ -36,7 +36,7 @@ class TissueForgeProcess(SimServiceProcess):
 
             config['annotations']['mask'] = {
                 '_type': 'array',
-                '_apply': set_next_mask  # TODO -- what is this???
+                '_apply': set_next_mask
             }
 
         super().__init__(config)

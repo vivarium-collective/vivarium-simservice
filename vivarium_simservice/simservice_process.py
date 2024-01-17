@@ -32,36 +32,48 @@ class SimServiceProcess(Process):
 
     def schema(self):
         # todo: maybe inform/warn when annotations are empty
+        inputs_annotations = self.annotations.get('inputs', {})
+        outputs_annotations = self.annotations.get('outputs', {})
 
-        schema = {
+        # TODO -- might want to use the full annotations, not just the "type" info.
+        # this should set the _apply to "set" if none is specified
+        inputs = {
             key: {
                 '_type': schema['type'],
                 '_apply': 'set'}
-            for key, schema in self.annotations.items()}
+            for key, schema in inputs_annotations.items()}
+        outputs = {
+            key: {
+                '_type': schema['type'],
+                '_apply': 'set'}
+            for key, schema in outputs_annotations.items()}
 
         # TODO -- make it so we can get different inputs/outputs from self.annotations
         return {
-            'inputs': schema,
-            'outputs': schema
+            'inputs': inputs,
+            'outputs': outputs,
         }
 
-    def update(self, state, interval):
-        print(type(self), state)
+    def update(self, inputs, interval):
+        print(type(self), inputs)
 
-        for key, schema in self.annotations.items():
-            if 'set' in schema and key in state:
+        inputs_annotations = self.annotations.get('inputs', {})
+        outputs_annotations = self.annotations.get('outputs', {})
+
+        for key, schema in inputs_annotations.items():
+            if 'set' in schema and key in inputs:
                 set_method = getattr(self.service, schema['set'])
-                set_method(state[key])
+                set_method(inputs[key])
 
         self.service.step()
 
-        update = {}
-        for key, schema in self.annotations.items():
-            if 'get' in schema and key in state:
+        outputs = {}
+        for key, schema in outputs_annotations.items():
+            if 'get' in schema and key in inputs:
                 get_method = getattr(self.service, schema['get'])
-                update[key] = get_method()
+                outputs[key] = get_method()
 
-        return update
+        return outputs
 
     def pre_run(self, config=None):
         """To be implemented by derived classes. Called before simulation service call to `run`."""
