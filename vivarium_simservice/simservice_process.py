@@ -30,29 +30,24 @@ class SimServiceProcess(Process):
         self.service.start()
         self.on_start(config)
 
-    def schema(self):
+    def inputs(self):
         # todo: maybe inform/warn when annotations are empty
-        inputs_annotations = self.annotations.get('inputs', {})
-        outputs_annotations = self.annotations.get('outputs', {})
-
         # TODO -- might want to use the full annotations, not just the "type" info.
+        inputs_annotations = self.annotations.get('inputs', {})
         # this should set the _apply to "set" if none is specified
-        inputs = {
+        return {
             key: {
                 '_type': schema['type'],
                 '_apply': 'set'}
             for key, schema in inputs_annotations.items()}
-        outputs = {
+
+    def outputs(self):
+        outputs_annotations = self.annotations.get('outputs', {})
+        return {
             key: {
                 '_type': schema['type'],
                 '_apply': 'set'}
             for key, schema in outputs_annotations.items()}
-
-        # TODO -- make it so we can get different inputs/outputs from self.annotations
-        return {
-            'inputs': inputs,
-            'outputs': outputs,
-        }
 
     def update(self, inputs, interval):
         print(type(self), inputs)

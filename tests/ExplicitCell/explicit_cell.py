@@ -1,7 +1,7 @@
 """
 Derived from the example available at https://github.com/tjsego/simservice/tree/develop/examples/ExplicitCell.
 """
-from process_bigraph import Composite
+from process_bigraph import Composite, ProcessTypes
 
 from cc3d.core import PyCoreSpecs as pcs
 from cc3d.core.PySteppables import SteppableBasePy
@@ -49,8 +49,10 @@ class InterfaceSteppable(SteppableBasePy):
 
 
 if __name__ == '__main__':
-    # Create the specs for a CC3D simulation
+    core = ProcessTypes()
 
+
+    # Create the specs for a CC3D simulation
     dim = [30, 30, 30]
     cells = [6, 6, 6]
 
@@ -70,42 +72,6 @@ if __name__ == '__main__':
     specs.append(contact_plugin)
 
     # Create a CC3D process and annotate it
-
-    # cc3d_process = CC3DProcess(config={'kwargs': {'specs': specs,
-    #                                               'steppables': [InterfaceSteppable]},
-    #                                    'annotations': {
-    #                                        'mask': {
-    #                                            'type': 'Any',
-    #                                            'get': 'cell_mask'
-    #                                        }
-    #                                    }})
-    #
-    # # Create a Tissue Forge process. The underlying service is constructed ad hoc and so requires not customization here
-    #
-    # tf_process = TissueForgeProcess(config={'kwargs': {'dim': dim,
-    #                                                    'cells': cells,
-    #                                                    'per_dim': 5,
-    #                                                    'num_steps': 1000}})
-    #
-    # # Initialize a cell using the underlying SimService interfaces
-    #
-    # loc = []
-    # for i in range(10, 20):
-    #     for j in range(10, 20):
-    #         loc.append((i, j))
-    # cell_id = cc3d_process.service.add_cell(loc)
-    # tf_process.service.add_domain(cell_id, cc3d_process.service.cell_mask())
-    # tf_process.service.equilibrate()
-    #
-    # update_cc3d = cc3d_process.update(state={'mask': cc3d_process.service.cell_mask()},
-    #                                   interval=1)
-    # print('update_cc3d')
-    # print(update_cc3d)
-    # update_tf = tf_process.update(state={'mask': cc3d_process.service.cell_mask()},
-    #                               interval=1)
-    # print('update_tf')
-    # print(update_tf)
-
     # define mask apply function
     def set_next_mask(current, update, bindings, core):
         return update
@@ -115,7 +81,6 @@ if __name__ == '__main__':
 
     emitter_schema = get_emitter_schema(target_path=['mask'])
     composite = {
-        'state': {
             'mask': {
                 '_type': 'array',
                 'value': mask,
@@ -183,10 +148,9 @@ if __name__ == '__main__':
                     'mask': ['mask']  # TODO -- where does this go?
                 }
             },
-        }
     }
 
-    sim = Composite(composite)
+    sim = Composite({'state': composite}, core=core)
     sim.run(2)
     results = sim.gather_results()
     print(results)
