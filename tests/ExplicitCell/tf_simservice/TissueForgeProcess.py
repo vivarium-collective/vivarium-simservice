@@ -27,9 +27,9 @@ class TissueForgeProcess(SimServiceProcess):
         for k, v in _def_kwargs().items():
             if k not in config['kwargs'].keys():
                 config['kwargs'][k] = v
-        if 'domain' not in config['annotations'].keys():
-            config['annotations']['domain'] = {'type': 'any',
-                                               'get': 'get_domains'}
+        # if 'domain' not in config['annotations'].keys():
+        #     config['annotations']['domain'] = {'type': 'any',
+        #                                        'get': 'get_domains'}
         if 'mask' not in config['annotations'].keys():
             def set_next_mask(current, update, bindings, core):
                 return update
