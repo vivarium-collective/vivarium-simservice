@@ -10,14 +10,10 @@ def get_emitter_schema(
             '_type': 'step',
             'address': f'{protocol}:{emitter}',
             'config': {
-                'ports': {
-                    'inputs': {
-                        'data': 'tree[any]'
-                    }
-                }
+                'emit': 'schema'
             },
             'inputs': {
-                'data': [] or target_path
+                'data': []
             }
         }
     }

@@ -87,7 +87,7 @@ if __name__ == '__main__':
                 'shape': (dim[0], dim[1]),
                 'data': 'int'
             },
-            **emitter_schema,
+            # **emitter_schema,
             'tissue-forge': {
                 '_type': 'process',
                 'address': 'local:!tf_simservice.TissueForgeProcess.TissueForgeProcess',
