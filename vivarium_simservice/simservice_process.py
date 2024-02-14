@@ -33,39 +33,31 @@ class SimServiceProcess(Process):
     def inputs(self):
         # todo: maybe inform/warn when annotations are empty
         # TODO -- might want to use the full annotations, not just the "type" info.
-        inputs_annotations = self.annotations.get('inputs', {})
         # this should set the _apply to "set" if none is specified
-        return {
-            key: {
-                '_type': schema['type'],
-                '_apply': 'set'}
-            for key, schema in inputs_annotations.items()}
+        input_schema = self.annotations.get('inputs', {}).get('schema', {})
+        return input_schema
 
     def outputs(self):
-        outputs_annotations = self.annotations.get('outputs', {})
-        return {
-            key: {
-                '_type': schema['type'],
-                '_apply': 'set'}
-            for key, schema in outputs_annotations.items()}
+        output_schema = self.annotations.get('outputs', {}).get('schema', {})
+        return output_schema
 
     def update(self, inputs, interval):
         print(type(self), inputs)
 
-        inputs_annotations = self.annotations.get('inputs', {})
-        outputs_annotations = self.annotations.get('outputs', {})
+        inputs_methods = self.annotations.get('inputs', {}).get('methods', {})
+        outputs_methods = self.annotations.get('outputs', {}).get('methods', {})
 
-        for key, schema in inputs_annotations.items():
-            if 'set' in schema and key in inputs:
-                set_method = getattr(self.service, schema['set'])
+        for key, method in inputs_methods.items():
+            if 'set' in method:
+                set_method = getattr(self.service, method['set'])
                 set_method(inputs[key])
 
         self.service.step()
 
         outputs = {}
-        for key, schema in outputs_annotations.items():
-            if 'get' in schema and key in inputs:
-                get_method = getattr(self.service, schema['get'])
+        for key, method in outputs_methods.items():
+            if 'get' in method:
+                get_method = getattr(self.service, method['get'])
                 outputs[key] = get_method()
 
         return outputs

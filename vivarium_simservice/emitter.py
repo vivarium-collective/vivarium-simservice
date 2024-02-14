@@ -10,7 +10,7 @@ def get_emitter_schema(
             '_type': 'step',
             'address': f'{protocol}:{emitter}',
             'config': {
-                'emit': 'schema'
+                'emit': {'data': 'array'}
             },
             'inputs': {
                 'data': []

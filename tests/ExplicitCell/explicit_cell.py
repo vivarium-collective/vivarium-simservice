@@ -51,7 +51,6 @@ class InterfaceSteppable(SteppableBasePy):
 if __name__ == '__main__':
     core = ProcessTypes()
 
-
     # Create the specs for a CC3D simulation
     dim = [30, 30, 30]
     cells = [6, 6, 6]
@@ -79,78 +78,97 @@ if __name__ == '__main__':
     mask = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     mask[10:20, 10:20] = 1
 
-    emitter_schema = get_emitter_schema(target_path=['mask'])
     composite = {
-            'mask': {
-                '_type': 'array',
-                'value': mask,
-                'shape': (dim[0], dim[1]),
-                'data': 'int'
-            },
-            # **emitter_schema,
-            'tissue-forge': {
-                '_type': 'process',
-                'address': 'local:!tf_simservice.TissueForgeProcess.TissueForgeProcess',
-                'config': {
-                    'service_name': tf_service_name,
-                    'args': [],
-                    'kwargs': {
-                        'dim': dim,
-                        'cells': cells,
-                        'per_dim': 5,
-                        'num_steps': 1000
-                    },
-                    'annotations': {
+        'mask_store': mask,
+        'tissue-forge': {
+            '_type': 'process',
+            'address': 'local:!tf_simservice.TissueForgeProcess.TissueForgeProcess',
+            'config': {
+                'service_name': tf_service_name,
+                'args': [],
+                'kwargs': {
+                    'dim': dim,
+                    'cells': cells,
+                    'per_dim': 5,
+                    'num_steps': 1000
+                },
+                'annotations': {
+                    'schema': {
                         'inputs': {
                             'mask': {
-                                'type': 'array',
-                                # TODO -- should we pass additional info like this?
-                                # '_shape': (dim[0], dim[1]),
-                                # '_data': 'int',
+                                '_type': 'array',
+                                '_shape': (dim[0], dim[1]),
+                                '_data': 'integer',
                                 '_apply': 'set',
                             }
                         }
-                    }
-                },
-                'inputs': {
-                    'mask': ['mask']
-                },
-                # 'outputs': {
-                #     'mask': ['mask_final']
-                # }
-            },
-            'cc3d': {
-                '_type': 'process',
-                'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
-                'config': {
-                    'service_name': cc3d_service_name,
-                    'args': [],
-                    'kwargs': {
-                        'specs': specs,
-                        'steppables': [InterfaceSteppable]
                     },
-                    'annotations': {
-                        'outputs': {
+                    'methods': {
+                        'inputs': {
                             'mask': {
-                                'type': 'array',
-                                # TODO -- should we pass additional info like this?
-                                # '_shape': (dim[0], dim[1]),
-                                # '_data': 'int',
-                                # '_apply': 'set',
+                                'set': 'set_next_mask'
                             }
                         }
                     }
-                },
-                # 'inputs': {
-                #     'mask': ['mask_initial']
-                # },
-                'outputs': {
-                    'mask': ['mask']  # TODO -- where does this go?
+
                 }
             },
+            'inputs': {
+                'mask': ['mask_store']
+            },
+        },
+        'cc3d': {
+            '_type': 'process',
+            'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
+            'config': {
+                'service_name': cc3d_service_name,
+                'args': [],
+                'kwargs': {
+                    'specs': specs,
+                    'steppables': [InterfaceSteppable]
+                },
+                'annotations': {
+                    'schema': {
+                        'outputs': {
+                            'mask': {
+                                '_type': 'array',
+                                '_shape': (dim[0], dim[1]),
+                                '_data': 'integer',
+                                '_apply': 'set',
+                            }
+                        },
+                    },
+                    'methods': {
+                        'outputs': {
+                            'mask': {
+                                'get': 'get_domain'
+                            }
+                        }
+                    }
+                }
+            },
+            'outputs': {
+                'mask': ['mask_store']
+            }
+        },
+        'ram-emitter': {
+            '_type': 'step',
+            'address': 'local:ram-emitter',
+            'config': {
+                'emit': {
+                    'data': 'array'
+                }
+            },
+            'inputs': {
+                'data': ['mask_store']
+            }
+        },
     }
 
-    sim = Composite({'state': composite}, core=core)
+    sim = Composite(
+        {'state': composite},
+        core=core
+    )
     sim.run(2)
     results = sim.gather_results()
     print(results)
