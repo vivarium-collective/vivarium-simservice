@@ -10,8 +10,8 @@ class SimServiceProcess(Process):
         'annotations': 'tree[any]'
     }
 
-    def __init__(self, config=None):
-        super().__init__(config)
+    def __init__(self, config=None, core=None):
+        super().__init__(config, core)
 
         self.annotations = self.config['annotations']
         """To be particularized by both a service provider and user"""

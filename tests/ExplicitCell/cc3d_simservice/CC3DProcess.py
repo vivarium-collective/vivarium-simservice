@@ -9,7 +9,7 @@ def _def_specs():
 
 class CC3DProcess(SimServiceProcess):
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, core=None):
 
         if config is None:
             config = dict(service_name=SERVICE_NAME,
@@ -31,7 +31,7 @@ class CC3DProcess(SimServiceProcess):
         self._specs = config_copy['kwargs'].pop('specs')
         self._steppables = config_copy['kwargs'].pop('steppables') if 'steppables' in config_copy['kwargs'] else None
 
-        super().__init__(config_copy)
+        super().__init__(config_copy, core)
 
     def pre_run(self, config=None):
         self.service.register_specs(self._specs)

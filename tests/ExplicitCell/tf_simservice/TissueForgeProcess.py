@@ -9,7 +9,7 @@ def _def_kwargs():
 
 class TissueForgeProcess(SimServiceProcess):
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, core=None):
 
         if config is None:
             config = dict(service_name=SERVICE_NAME,
@@ -39,4 +39,4 @@ class TissueForgeProcess(SimServiceProcess):
                 '_apply': set_next_mask
             }
 
-        super().__init__(config)
+        super().__init__(config, core)
