@@ -16,27 +16,48 @@ class TissueForgeProcess(SimServiceProcess):
                           args=[],
                           kwargs=_def_kwargs(),
                           annotations={})
-        if 'service_name' not in config.keys():
+        if 'service_name' not in config:
             config['service_name'] = SERVICE_NAME
-        if 'args' not in config.keys():
+        if 'args' not in config:
             config['args'] = []
-        if 'kwargs' not in config.keys():
+        if 'kwargs' not in config:
             config['kwargs'] = _def_kwargs()
-        if 'annotations' not in config.keys():
-            config['annotations'] = {}
         for k, v in _def_kwargs().items():
-            if k not in config['kwargs'].keys():
+            if k not in config['kwargs']:
                 config['kwargs'][k] = v
         # if 'domain' not in config['annotations'].keys():
         #     config['annotations']['domain'] = {'type': 'any',
         #                                        'get': 'get_domains'}
-        if 'mask' not in config['annotations'].keys():
+        if not config['interface'].get('inputs'):
             def set_next_mask(current, update, bindings, core):
                 return update
 
-            config['annotations']['mask'] = {
-                '_type': 'array',
-                '_apply': set_next_mask
+            config['interface']['inputs'] = {
+                'mask': {
+                    '_type': 'array',
+                    '_data': 'integer',
+                    '_apply': set_next_mask
+                }
             }
 
         super().__init__(config, core)
+
+    def inputs(self):
+        # TODO -- remove this process and get inputs from the config
+        dim = self.config['kwargs']['dim']
+        return {
+            'mask': {
+                '_type': 'array',
+                '_shape': (dim[0], dim[1]),
+                '_data': 'integer',
+                '_apply': 'set'
+            }
+        }
+
+    def outputs(self):
+        return {
+            'vector_positions': {
+                # '_type': 'tuple'  # TODO
+            },
+            # 'particle_ids': {},
+        }

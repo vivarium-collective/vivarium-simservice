@@ -92,25 +92,34 @@ if __name__ == '__main__':
                     'per_dim': 5,
                     'num_steps': 1000
                 },
-                'annotations': {
-                    'schema': {
-                        'inputs': {
-                            'mask': {
-                                '_type': 'array',
-                                '_shape': (dim[0], dim[1]),
-                                '_data': 'integer',
-                                '_apply': 'set',
-                            }
+                'interface': {
+                    'inputs': {
+                        'mask': {
+                            '_type': 'array',
+                            '_shape': (dim[0], dim[1]),
+                            '_data': 'integer',
+                            '_apply': 'set',
                         }
                     },
-                    'methods': {
-                        'inputs': {
-                            'mask': {
-                                'set': 'set_next_mask'
-                            }
-                        }
+                    'outputs': {
+                        'vector_positions': {},
+                        # 'particle_ids': {},
                     }
-
+                },
+                'methods': {
+                    'inputs': {
+                        'mask': {
+                            'set': 'set_next_mask'
+                        }
+                    },
+                    'outputs': {
+                        'vector_positions': {
+                            'get': 'get_domains'
+                        },
+                        # 'particle_ids': {
+                        #     'get': ''  # TODO -- add to TissueForgeSimService
+                        # }
+                    }
                 }
             },
             'inputs': {
@@ -127,22 +136,20 @@ if __name__ == '__main__':
                     'specs': specs,
                     'steppables': [InterfaceSteppable]
                 },
-                'annotations': {
-                    'schema': {
-                        'outputs': {
-                            'mask': {
-                                '_type': 'array',
-                                '_shape': (dim[0], dim[1]),
-                                '_data': 'integer',
-                                '_apply': 'set',
-                            }
-                        },
+                'interface': {
+                    'outputs': {
+                        'mask': {
+                            '_type': 'array',
+                            '_shape': (dim[0], dim[1]),
+                            '_data': 'integer',
+                            '_apply': 'set',
+                        }
                     },
-                    'methods': {
-                        'outputs': {
-                            'mask': {
-                                'get': 'get_domain'
-                            }
+                },
+                'methods': {
+                    'outputs': {
+                        'mask': {
+                            'get': 'get_domain'
                         }
                     }
                 }
@@ -156,7 +163,11 @@ if __name__ == '__main__':
             'address': 'local:ram-emitter',
             'config': {
                 'emit': {
-                    'data': 'array'
+                    'data': {
+                            '_type': 'array',
+                            '_shape': (dim[0], dim[1]),
+                            '_data': 'integer',
+                        }
                 }
             },
             'inputs': {

@@ -7,13 +7,21 @@ class SimServiceProcess(Process):
         'service_name': 'string',
         'args': 'list[any]',
         'kwargs': 'tree[any]',
-        'annotations': 'tree[any]'
+        'interface': {
+            'inputs': 'tree[any]',
+            'outputs': 'tree[any]'
+        },
+        'methods': {
+            'inputs': 'maybe[tree[string]]',
+            'outputs': 'maybe[tree[string]]',
+        }
     }
 
     def __init__(self, config=None, core=None):
         super().__init__(config, core)
 
-        self.annotations = self.config['annotations']
+        self.interface_schema = self.config['interface']
+        self.access_methods = self.config['methods']
         """To be particularized by both a service provider and user"""
 
         service_name = self.config['service_name']
@@ -34,18 +42,18 @@ class SimServiceProcess(Process):
         # todo: maybe inform/warn when annotations are empty
         # TODO -- might want to use the full annotations, not just the "type" info.
         # this should set the _apply to "set" if none is specified
-        input_schema = self.annotations.get('inputs', {}).get('schema', {})
+        input_schema = self.interface_schema.get('inputs', {})
         return input_schema
 
     def outputs(self):
-        output_schema = self.annotations.get('outputs', {}).get('schema', {})
+        output_schema = self.interface_schema.get('outputs', {})
         return output_schema
 
     def update(self, inputs, interval):
         print(type(self), inputs)
 
-        inputs_methods = self.annotations.get('inputs', {}).get('methods', {})
-        outputs_methods = self.annotations.get('outputs', {}).get('methods', {})
+        inputs_methods = self.access_methods.get('inputs', {})
+        outputs_methods = self.access_methods.get('outputs', {})
 
         for key, method in inputs_methods.items():
             if 'set' in method:
