@@ -102,7 +102,7 @@ if __name__ == '__main__':
                         }
                     },
                     'outputs': {
-                        'vector_positions': {},
+                        # 'vector_positions': {},
                         # 'particle_ids': {},
                     }
                 },
@@ -113,9 +113,9 @@ if __name__ == '__main__':
                         }
                     },
                     'outputs': {
-                        'vector_positions': {
-                            'get': 'get_domains'
-                        },
+                        # 'vector_positions': {
+                        #     'get': 'get_domains'
+                        # },
                         # 'particle_ids': {
                         #     'get': ''  # TODO -- add to TissueForgeSimService
                         # }
@@ -147,9 +147,10 @@ if __name__ == '__main__':
                     },
                 },
                 'methods': {
+                    'inputs': {},
                     'outputs': {
                         'mask': {
-                            'get': 'get_domain'
+                            'get': 'cell_mask'
                         }
                     }
                 }
@@ -180,6 +181,9 @@ if __name__ == '__main__':
         {'state': composite},
         core=core
     )
+
+    import ipdb; ipdb.set_trace()
+
     sim.run(2)
     results = sim.gather_results()
     print(results)
