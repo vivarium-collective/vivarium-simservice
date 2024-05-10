@@ -70,11 +70,6 @@ if __name__ == '__main__':
     contact_plugin.param_new(cell_type_name, cell_type_name, 10)
     specs.append(contact_plugin)
 
-    # Create a CC3D process and annotate it
-    # define mask apply function
-    def set_next_mask(current, update, bindings, core):
-        return update
-
     mask = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     mask[10:20, 10:20] = 1
 
