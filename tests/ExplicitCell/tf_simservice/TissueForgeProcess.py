@@ -54,10 +54,10 @@ class TissueForgeProcess(SimServiceProcess):
             }
         }
 
-    def outputs(self):
-        return {
-            'vector_positions': {
-                # '_type': 'tuple'  # TODO
-            },
-            # 'particle_ids': {},
-        }
+    # def outputs(self):
+    #     return {
+    #         'vector_positions': {
+    #             # '_type': 'tuple'  # TODO
+    #         },
+    #         # 'particle_ids': {},
+    #     }

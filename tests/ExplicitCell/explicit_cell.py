@@ -70,11 +70,16 @@ if __name__ == '__main__':
     contact_plugin.param_new(cell_type_name, cell_type_name, 10)
     specs.append(contact_plugin)
 
-    mask = np.zeros(shape=(dim[0], dim[1]), dtype=int)
-    mask[10:20, 10:20] = 1
+    initial_mask = []
+    for i in range(10):
+        for j in range(10):
+            initial_mask.append((i+10, j+10))
+
+    # mask = np.zeros(shape=(dim[0], dim[1]), dtype=int)
+    # mask[10:20, 10:20] = 1
 
     composite = {
-        'mask_store': mask,
+        # 'mask_store': mask,
         'tissue-forge': {
             '_type': 'process',
             'address': 'local:!tf_simservice.TissueForgeProcess.TissueForgeProcess',
@@ -96,10 +101,10 @@ if __name__ == '__main__':
                             '_apply': 'set',
                         }
                     },
-                    'outputs': {
-                        # 'vector_positions': {},
-                        # 'particle_ids': {},
-                    }
+                    # 'outputs': {
+                    #     # 'vector_positions': {},
+                    #     # 'particle_ids': {},
+                    # }
                 },
                 'methods': {
                     'inputs': {
@@ -107,19 +112,20 @@ if __name__ == '__main__':
                             'set': 'set_next_mask'
                         }
                     },
-                    'outputs': {
-                        # 'vector_positions': {
-                        #     'get': 'get_domains'
-                        # },
-                        # 'particle_ids': {
-                        #     'get': ''  # TODO -- add to TissueForgeSimService
-                        # }
-                    }
+                    # 'outputs': {
+                    #     # 'vector_positions': {
+                    #     #     'get': 'get_domains'
+                    #     # },
+                    #     # 'particle_ids': {
+                    #     #     'get': ''  # TODO -- add to TissueForgeSimService
+                    #     # }
+                    # }
                 }
             },
             'inputs': {
                 'mask': ['mask_store']
             },
+            # 'outputs': {},
         },
         'cc3d': {
             '_type': 'process',
@@ -129,7 +135,8 @@ if __name__ == '__main__':
                 'args': [],
                 'kwargs': {
                     'specs': specs,
-                    'steppables': [InterfaceSteppable]
+                    'steppables': [InterfaceSteppable],
+                    'initial_mask': initial_mask
                 },
                 'interface': {
                     'outputs': {

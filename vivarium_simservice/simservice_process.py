@@ -52,6 +52,8 @@ class SimServiceProcess(Process):
     def update(self, inputs, interval):
         print(type(self), inputs)
 
+        import ipdb; ipdb.set_trace()
+
         inputs_methods = self.access_methods.get('inputs', {})
         outputs_methods = self.access_methods.get('outputs', {})
 

@@ -1,3 +1,5 @@
+import time
+
 from vivarium_simservice.simservice_process import SimServiceProcess
 from cc3d.core.simservice.PyServiceCC3D import SERVICE_NAME
 from cc3d.core import PyCoreSpecs as pcs
@@ -24,11 +26,24 @@ class CC3DProcess(SimServiceProcess):
         config_copy = config.copy()
         self._specs = config_copy['kwargs'].pop('specs')
         self._steppables = config_copy['kwargs'].pop('steppables') if 'steppables' in config_copy['kwargs'] else None
+        
+        self.initial_mask = config_copy['kwargs'].pop('initial_mask', [])
 
         super().__init__(config_copy, core)
+
+        while not hasattr(self.service, 'add_cell'):
+            time.sleep(1)
+
+        self.service.add_cell(self.initial_mask)
+
 
     def pre_run(self, config=None):
         self.service.register_specs(self._specs)
 
         if self._steppables is not None:
             [self.service.register_steppable(steppable) for steppable in self._steppables]
+
+
+    def initial_state(self):
+        return {
+            'mask': self.service.cell_mask()}
