@@ -3,49 +3,11 @@ Derived from the example available at https://github.com/tjsego/simservice/tree/
 """
 from process_bigraph import Composite, ProcessTypes
 
-from cc3d.core import PyCoreSpecs as pcs
-from cc3d.core.PySteppables import SteppableBasePy
-
-import numpy as np
-from simservice import service_function
-from typing import List, Tuple
-
-from cc3d_simservice import CC3DProcess
-from tf_simservice import TissueForgeProcess
-
 from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name
 from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name
 from vivarium_simservice.emitter import get_emitter_schema
 
 cell_type_name = 'cell'
-
-
-class InterfaceSteppable(SteppableBasePy):
-
-    def start(self):
-        """Make proxy methods out of methods on this class"""
-        service_function(self.add_cell)
-        service_function(self.cell_mask)
-
-    @property
-    def type(self):
-        """Simple convenience property to get the label of the cell type"""
-        return getattr(self.cell_type, cell_type_name)
-
-    def add_cell(self, loc: List[Tuple[int, int]]):
-        """Adds a cell to the simulation"""
-        new_cell = self.new_cell(self.type)
-        for x, y in loc:
-            self.cell_field[x, y, 0] = new_cell
-        return new_cell.id
-
-    def cell_mask(self):
-        """Gets the mask of the cell field"""
-        result = np.zeros((self.dim.x, self.dim.y), dtype=int)
-        for cell in self.cell_list:
-            for ptd in self.get_cell_pixel_list(cell):
-                result[ptd.pixel.x, ptd.pixel.y] = cell.id
-        return result
 
 
 if __name__ == '__main__':
@@ -54,21 +16,6 @@ if __name__ == '__main__':
     # Create the specs for a CC3D simulation
     dim = [30, 30, 30]
     cells = [6, 6, 6]
-
-    specs = [pcs.PottsCore(dim_x=dim[0],
-                           dim_y=dim[1],
-                           fluctuation_amplitude=10.0),
-             pcs.PixelTrackerPlugin(),
-             pcs.CellTypePlugin(cell_type_name)]
-
-    volume_plugin = pcs.VolumePlugin()
-    volume_plugin.param_new(cell_type_name, 100, 10)
-    specs.append(volume_plugin)
-
-    contact_plugin = pcs.ContactPlugin(2)
-    contact_plugin.param_new(cell_type_name, 'Medium', 10)
-    contact_plugin.param_new(cell_type_name, cell_type_name, 10)
-    specs.append(contact_plugin)
 
     initial_mask = []
     for i in range(10):
@@ -101,10 +48,11 @@ if __name__ == '__main__':
                             '_apply': 'set',
                         }
                     },
-                    # 'outputs': {
-                    #     # 'vector_positions': {},
-                    #     # 'particle_ids': {},
-                    # }
+                    'outputs': {
+                        'domains': {
+                            '_type': 'tree[any]'
+                        }
+                    }
                 },
                 'methods': {
                     'inputs': {
@@ -112,20 +60,19 @@ if __name__ == '__main__':
                             'set': 'set_next_mask'
                         }
                     },
-                    # 'outputs': {
-                    #     # 'vector_positions': {
-                    #     #     'get': 'get_domains'
-                    #     # },
-                    #     # 'particle_ids': {
-                    #     #     'get': ''  # TODO -- add to TissueForgeSimService
-                    #     # }
-                    # }
+                    'outputs': {
+                        'domains': {
+                            'get': 'get_domains'
+                        }
+                    }
                 }
             },
             'inputs': {
                 'mask': ['mask_store']
             },
-            # 'outputs': {},
+            'outputs': {
+                'domains': ['domains_store']
+            }
         },
         'cc3d': {
             '_type': 'process',
@@ -134,12 +81,21 @@ if __name__ == '__main__':
                 'service_name': cc3d_service_name,
                 'args': [],
                 'kwargs': {
-                    'specs': specs,
-                    'steppables': [InterfaceSteppable],
+                    'dim': (dim[0], dim[1]),
                     'initial_mask': initial_mask
                 },
                 'interface': {
+                    'inputs': {
+                        'target_volumes': {
+                            '_type': 'list',
+                            '_apply': 'set'
+                        }
+                    },
                     'outputs': {
+                        'cell_ids': {
+                            '_type': 'list',
+                            '_apply': 'set'
+                        },
                         'mask': {
                             '_type': 'array',
                             '_shape': (dim[0], dim[1]),
@@ -149,15 +105,26 @@ if __name__ == '__main__':
                     },
                 },
                 'methods': {
-                    'inputs': {},
+                    'inputs': {
+                        'target_volumes': {
+                            'set': 'set_target_volumes'
+                        }
+                    },
                     'outputs': {
+                        'cell_ids': {
+                            'get': 'cell_ids'
+                        },
                         'mask': {
                             'get': 'cell_mask'
                         }
                     }
                 }
             },
+            'inputs': {
+                'target_volumes': ['target_volumes_store']
+            },
             'outputs': {
+                'cell_ids': ['cell_ids_store'],
                 'mask': ['mask_store']
             }
         },
