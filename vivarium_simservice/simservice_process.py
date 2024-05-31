@@ -3,32 +3,33 @@ from simservice.service_factory import process_factory
 
 
 class SimServiceProcess(Process):
-    config_schema = {
-        'service_name': 'string',
-        'args': 'list[any]',
-        'kwargs': 'tree[any]',
-        'interface': {
-            'inputs': 'tree[any]',
-            'outputs': 'tree[any]'
-        },
-        'methods': {
-            'inputs': 'maybe[tree[string]]',
-            'outputs': 'maybe[tree[string]]',
-        }
+    # base_config_schema = {
+    #     'service_name': 'string',
+    #     'args': 'list[any]',
+    #     'kwargs': 'tree[any]',
+    #     'interface': {
+    #         'inputs': 'tree[any]',
+    #         'outputs': 'tree[any]'
+    #     },
+    #     'methods': {
+    #         'inputs': 'maybe[tree[string]]',
+    #         'outputs': 'maybe[tree[string]]',
+    #     }
+    # }
+    access_methods = {
+        'inputs': {},
+        'outputs': {}
     }
+    service_name = None
 
     def __init__(self, config=None, core=None):
         super().__init__(config, core)
+        assert self.service_name is not None, "Service name must be defined in derived class"
 
-        self.interface_schema = self.config['interface']
-        self.access_methods = self.config['methods']
-        """To be particularized by both a service provider and user"""
-
-        service_name = self.config['service_name']
         self.service = process_factory(
-            service_name,
-            *self.config['args'],
-            **self.config['kwargs'])
+            self.service_name,
+            *[],
+            **self.config)
 
         self.pre_run(config)
         self.service.run()
@@ -38,37 +39,36 @@ class SimServiceProcess(Process):
         self.service.start()
         self.on_start(config)
 
-    def inputs(self):
-        # todo: maybe inform/warn when annotations are empty
-        # TODO -- might want to use the full annotations, not just the "type" info.
-        # this should set the _apply to "set" if none is specified
-        input_schema = self.interface_schema.get('inputs', {})
-        return input_schema
+        # complete the access methods with default values ion
+        inputs = self.inputs()
+        outputs = self.outputs()
+        for input_key, schema in inputs.items():
+            if input_key not in self.access_methods['inputs']:
+                self.access_methods['inputs'][input_key] = f'set_{input_key}'
+        for output_key, schema in outputs.items():
+            if output_key not in self.access_methods['outputs']:
+                self.access_methods['outputs'][output_key] = f'get_{output_key}'
 
-    def outputs(self):
-        output_schema = self.interface_schema.get('outputs', {})
-        return output_schema
+        # check that the access methods exist in the service
+        for key, method in self.access_methods['inputs'].items():
+            assert hasattr(self.service, method), f"Method {method['set']} not found in service {self.service_name}"
+        for key, method in self.access_methods['outputs'].items():
+            assert hasattr(self.service, method), f"Method {method['set']} not found in service {self.service_name}"
 
     def update(self, inputs, interval):
         print(type(self), inputs)
 
-        import ipdb; ipdb.set_trace()
-
-        inputs_methods = self.access_methods.get('inputs', {})
-        outputs_methods = self.access_methods.get('outputs', {})
-
-        for key, method in inputs_methods.items():
-            if 'set' in method:
-                set_method = getattr(self.service, method['set'])
-                set_method(inputs[key])
+        for key, value in inputs.items():
+            method = self.access_methods['inputs'][key]
+            set_method = getattr(self.service, method)
+            set_method(value)
 
         self.service.step()
 
         outputs = {}
-        for key, method in outputs_methods.items():
-            if 'get' in method:
-                get_method = getattr(self.service, method['get'])
-                outputs[key] = get_method()
+        for key, method in self.access_methods['outputs'].items():
+            get_method = getattr(self.service, method)
+            outputs[key] = get_method()
 
         return outputs
 
