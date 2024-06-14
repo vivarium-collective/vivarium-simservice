@@ -26,7 +26,6 @@ if __name__ == '__main__':
     # mask[10:20, 10:20] = 1
 
     composite = {
-        # 'mask_store': mask,
         'tissue-forge': {
             '_type': 'process',
             'address': 'local:!tf_simservice.TissueForgeProcess.TissueForgeProcess',
@@ -34,105 +33,32 @@ if __name__ == '__main__':
                 'dim': dim,
                 'cells': cells,
                 'per_dim': 5,
-                'num_steps': 1000
+                'num_steps': 1000,
+                'disable_ports': {'inputs': [], 'outputs': []}
             },
-                # 'service_name': tf_service_name,
-                # 'args': [],
-                # 'kwargs': {
-                #     'dim': dim,
-                #     'cells': cells,
-                #     'per_dim': 5,
-                #     'num_steps': 1000
-                # },
-                # 'interface': {
-                #     'inputs': {
-                #         'mask': {
-                #             '_type': 'array',
-                #             '_shape': (dim[0], dim[1]),
-                #             '_data': 'integer',
-                #             '_apply': 'set',
-                #         }
-                #     },
-                #     'outputs': {
-                #         'domains': {
-                #             '_type': 'tree[any]'
-                #         }
-                #     }
-                # },
-                # 'methods': {
-                #     'inputs': {
-                #         'mask': {
-                #             'set': 'set_next_mask'
-                #         }
-                #     },
-                #     'outputs': {
-                #         'domains': {
-                #             'get': 'get_domains'
-                #         }
-                #     }
-                # }
-            # },
             'inputs': {
                 'mask': ['mask_store']
             },
             'outputs': {
                 'domains': ['domains_store']
+                # TODO map output to target_volumes
             }
         },
-        # 'cc3d': {
-        #     '_type': 'process',
-        #     'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
-        #     'config': {
-        #         'service_name': cc3d_service_name,
-        #         'args': [],
-        #         'kwargs': {
-        #             'dim': (dim[0], dim[1]),
-        #             'initial_mask': initial_mask
-        #         },
-        #         'interface': {
-        #             'inputs': {
-        #                 'target_volumes': {
-        #                     '_type': 'list',
-        #                     '_apply': 'set'
-        #                 }
-        #             },
-        #             'outputs': {
-        #                 'cell_ids': {
-        #                     '_type': 'list',
-        #                     '_apply': 'set'
-        #                 },
-        #                 'mask': {
-        #                     '_type': 'array',
-        #                     '_shape': (dim[0], dim[1]),
-        #                     '_data': 'integer',
-        #                     '_apply': 'set',
-        #                 }
-        #             },
-        #         },
-        #         'methods': {
-        #             'inputs': {
-        #                 'target_volumes': {
-        #                     'set': 'set_target_volumes'
-        #                 }
-        #             },
-        #             'outputs': {
-        #                 'cell_ids': {
-        #                     'get': 'cell_ids'
-        #                 },
-        #                 'mask': {
-        #                     'get': 'cell_mask'
-        #                 }
-        #             }
-        #         }
-        #     },
-        #     'inputs': {
-        #         'target_volumes': ['target_volumes_store']
-        #     },
-        #     'outputs': {
-        #         'cell_ids': ['cell_ids_store'],
-        #         'mask': ['mask_store']
-        #     }
-        # },
+        'cc3d': {
+            '_type': 'process',
+            'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
+            'config': {
+                'dim': (dim[0], dim[1]),
+                'initial_mask': initial_mask
+            },
+            'inputs': {
+                'target_volumes': ['target_volumes_store']
+            },
+            'outputs': {
+                'cell_ids': ['cell_ids_store'],
+                'mask': ['mask_store']
+            }
+        },
         'ram-emitter': {
             '_type': 'step',
             'address': 'local:ram-emitter',

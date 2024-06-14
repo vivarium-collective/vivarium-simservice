@@ -1,21 +1,14 @@
-from process_bigraph import Process
+from process_bigraph import Process, ProcessTypes, deep_merge
 from simservice.service_factory import process_factory
 
 
 class SimServiceProcess(Process):
-    # base_config_schema = {
-    #     'service_name': 'string',
-    #     'args': 'list[any]',
-    #     'kwargs': 'tree[any]',
-    #     'interface': {
-    #         'inputs': 'tree[any]',
-    #         'outputs': 'tree[any]'
-    #     },
-    #     'methods': {
-    #         'inputs': 'maybe[tree[string]]',
-    #         'outputs': 'maybe[tree[string]]',
-    #     }
-    # }
+    config_schema = {
+        'process_config': {
+            'disable_ports': 'map[string]'
+        }
+    }
+
     access_methods = {
         'inputs': {},
         'outputs': {}
@@ -23,8 +16,15 @@ class SimServiceProcess(Process):
     service_name = None
 
     def __init__(self, config=None, core=None):
+        # DO a merge of the config schema?
+        # self.config_schema = deep_merge(self.config_schema, self.base_config_schema)
+
         super().__init__(config, core)
         assert self.service_name is not None, "Service name must be defined in derived class"
+
+
+        # TODO -- find a way to parse out simservice config and process config
+        self.disable_ports = self.config.pop('disable_ports')
 
         self.service = process_factory(
             self.service_name,
@@ -59,6 +59,8 @@ class SimServiceProcess(Process):
         print(type(self), inputs)
 
         for key, value in inputs.items():
+            if key in self.config['disable_ports'].get('inputs'):
+                continue
             method = self.access_methods['inputs'][key]
             set_method = getattr(self.service, method)
             set_method(value)
@@ -67,6 +69,8 @@ class SimServiceProcess(Process):
 
         outputs = {}
         for key, method in self.access_methods['outputs'].items():
+            if key in self.config['disable_ports'].get('outputs'):
+                continue
             get_method = getattr(self.service, method)
             outputs[key] = get_method()
 
@@ -87,3 +91,14 @@ class SimServiceProcess(Process):
     def on_start(self, config=None):
         """To be implemented by derived classes. Called after simulation service call to `start`."""
         pass
+
+
+if __name__ == "__main__":
+    core = ProcessTypes()
+    d = core.dataclass({'mask': 'float',
+                        'particle': 'map[string]'})
+    instance = d(mask=1.0, particle={'name': 'test'})
+    instance_dict = instance.to_dict()
+
+    pass
+    # call_matlab_function()

@@ -1,5 +1,8 @@
-# todo: cleanup default vs. required arguments
+"""
+CompuCell3D Process
+"""
 
+import copy
 import numpy as np
 from typing import List, Tuple
 import warnings
@@ -9,6 +12,7 @@ from cc3d.core.simservice.PyServiceCC3D import SERVICE_NAME
 from cc3d.core import PyCoreSpecs as pcs
 from cc3d.core.PySteppables import SteppableBasePy
 from simservice import service_function
+from process_bigraph import deep_merge
 
 cell_type_name = 'cell'
 cell_volume_target = 100
@@ -41,6 +45,8 @@ class InterfaceSteppable(SteppableBasePy):
         """Make proxy methods out of methods on this class"""
         service_function(self.add_cell)
         service_function(self.cell_mask)
+        service_function(self.cell_ids)
+        service_function(self.set_target_volumes)
 
     @property
     def type(self):
@@ -77,76 +83,44 @@ class InterfaceSteppable(SteppableBasePy):
 
 
 class CC3DProcess(SimServiceProcess):
+    config_schema = deep_merge(
+        dct=copy.deepcopy(SimServiceProcess.config_schema),
+        merge_dct={
+            'dim': 'tuple[integer,integer]',
+            'initial_mask': 'list[tuple[integer,integer]]',
+        })
 
-    def __init__(self, config=None, core=None):
+    access_methods = {
+        'inputs': {
+            'target_volumes': 'set_target_volumes'
+        },
+        'outputs': {
+            'cell_ids': 'cell_ids',
+            'mask': 'cell_mask',
+        }
+    }
 
-        if config is None:
-            config_copy = dict(service_name=SERVICE_NAME,
-                               args=[],
-                               kwargs=_def_kwargs(),
-                               interface={},
-                               methods={})
-        else:
-            config_copy = config.copy()
-
-        if 'service_name' not in config_copy:
-            config_copy['service_name'] = SERVICE_NAME
-        if 'kwargs' not in config_copy:
-            config_copy['kwargs'] = _def_kwargs()
-        if 'interface' not in config_copy:
-            config_copy['interface'] = {'inputs': {},
-                                        'outputs': {}}
-        else:
-            if 'inputs' not in config_copy['interface']:
-                config_copy['interface']['inputs'] = {}
-            if 'outputs' not in config_copy['interface']:
-                config_copy['interface']['outputs'] = {}
-        if 'methods' not in config_copy:
-            config_copy['methods'] = {'inputs': {},
-                                      'outputs': {}}
-        else:
-            if 'inputs' not in config_copy['methods']:
-                config_copy['methods']['inputs'] = {}
-            if 'outputs' not in config_copy['methods']:
-                config_copy['methods']['outputs'] = {}
-
-        # Apply default kwargs as necessary
-        for k, v in _def_kwargs().items():
-            if k not in config_copy['kwargs']:
-                config_copy['kwargs'][k] = v
-
-        # Extract implementation-specific inputs
-        self._specs = {'dim': config_copy['kwargs'].pop('dim')}
-        self._initial_mask = config_copy['kwargs'].pop('initial_mask')
-
-        # Apply default interface information as necessary
-        if 'target_volumes' not in config_copy['interface']['inputs']:
-            config_copy['interface']['inputs']['target_volumes'] = {
+    def inputs(self):
+        return {
+            'target_volumes': {
                 '_type': 'list',
                 '_apply': 'set'
             }
-        if 'mask' not in config_copy['interface']['outputs']:
-            config_copy['interface']['outputs']['mask'] = {
+        }
+
+    def outputs(self):
+        return {
+            'cell_ids': {
+                '_type': 'list',
+                '_apply': 'set'
+            },
+            'mask': {
                 '_type': 'array',
-                '_shape': (self._specs['dim'][0], self._specs['dim'][1]),
+                '_shape': (self.config['dim'][0], self.config['dim'][1]),
                 '_data': 'integer',
-                '_apply': 'set'
+                '_apply': 'set',
             }
-        if 'cell_ids' not in config_copy['interface']['outputs']:
-            config_copy['interface']['outputs']['cell_ids'] = {
-                '_type': 'list',
-                '_apply': 'set'
-            }
-
-        # Apply default methods information as necessary
-        if 'target_volumes' not in config_copy['methods']['inputs']:
-            config_copy['methods']['inputs']['target_volumes'] = {'set': 'set_target_volumes'}
-        if 'mask' not in config_copy['methods']['outputs']:
-            config_copy['methods']['outputs']['mask'] = {'get': 'cell_mask'}
-        if 'cell_ids' not in config_copy['methods']['outputs']:
-            config_copy['methods']['outputs']['cell_ids'] = {'get': 'cell_ids'}
-
-        super().__init__(config_copy, core)
+        },
 
     def pre_run(self, config=None):
         self.service.register_specs(specs(**self._specs))
