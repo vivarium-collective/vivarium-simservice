@@ -34,7 +34,12 @@ if __name__ == '__main__':
                 'cells': cells,
                 'per_dim': 5,
                 'num_steps': 1000,
-                'disable_ports': {'inputs': [], 'outputs': []}
+                'process_config': {
+                    'disable_ports': {
+                        'inputs': [],
+                        'outputs': []
+                    }
+                }
             },
             'inputs': {
                 'mask': ['mask_store']
@@ -49,7 +54,13 @@ if __name__ == '__main__':
             'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
             'config': {
                 'dim': (dim[0], dim[1]),
-                'initial_mask': initial_mask
+                'initial_mask': initial_mask,
+                'process_config': {
+                    'disable_ports': {
+                        'inputs': [],
+                        'outputs': []
+                    }
+                }
             },
             'inputs': {
                 'target_volumes': ['target_volumes_store']

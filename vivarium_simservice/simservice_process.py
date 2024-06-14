@@ -16,15 +16,11 @@ class SimServiceProcess(Process):
     service_name = None
 
     def __init__(self, config=None, core=None):
-        # DO a merge of the config schema?
-        # self.config_schema = deep_merge(self.config_schema, self.base_config_schema)
-
         super().__init__(config, core)
         assert self.service_name is not None, "Service name must be defined in derived class"
 
-
         # TODO -- find a way to parse out simservice config and process config
-        self.disable_ports = self.config.pop('disable_ports')
+        self.process_config = self.config.pop('process_config', {})
 
         self.service = process_factory(
             self.service_name,
@@ -59,7 +55,7 @@ class SimServiceProcess(Process):
         print(type(self), inputs)
 
         for key, value in inputs.items():
-            if key in self.config['disable_ports'].get('inputs'):
+            if key in self.process_config['disable_ports'].get('inputs'):
                 continue
             method = self.access_methods['inputs'][key]
             set_method = getattr(self.service, method)
@@ -69,7 +65,7 @@ class SimServiceProcess(Process):
 
         outputs = {}
         for key, method in self.access_methods['outputs'].items():
-            if key in self.config['disable_ports'].get('outputs'):
+            if key in self.process_config['disable_ports'].get('outputs'):
                 continue
             get_method = getattr(self.service, method)
             outputs[key] = get_method()
@@ -99,6 +95,3 @@ if __name__ == "__main__":
                         'particle': 'map[string]'})
     instance = d(mask=1.0, particle={'name': 'test'})
     instance_dict = instance.to_dict()
-
-    pass
-    # call_matlab_function()
