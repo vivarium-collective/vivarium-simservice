@@ -99,6 +99,7 @@ class CC3DProcess(SimServiceProcess):
             'mask': 'cell_mask',
         }
     }
+    service_name = SERVICE_NAME
 
     def inputs(self):
         return {
@@ -139,3 +140,45 @@ class CC3DProcess(SimServiceProcess):
         return {
             'mask': self.service.cell_mask()
         }
+
+
+def run_cc3d_alone():
+    from process_bigraph import Composite, ProcessTypes
+
+    core = ProcessTypes()
+
+    dim = (30, 30)
+    initial_mask = [(15, 15)]
+
+    composite = {
+        'cc3d': {
+            '_type': 'process',
+            'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
+            'config': {
+                'dim': dim,
+                'initial_mask': initial_mask,
+                'disable_ports': {
+                    'inputs': [],
+                    'outputs': []
+                }
+            },
+            'inputs': {
+                'target_volumes': ['target_volumes_store']
+            },
+            'outputs': {
+                'cell_ids': ['cell_ids_store'],
+                'mask': ['mask_store']
+            }
+        },
+    }
+
+    sim = Composite(
+        {'state': composite},
+        core=core
+    )
+
+    sim.run(2)
+
+
+if __name__ == '__main__':
+    run_cc3d_alone()

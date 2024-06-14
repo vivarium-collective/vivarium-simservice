@@ -1,3 +1,7 @@
+"""
+This module provides a base class for Vivarium processes wrapper of simulation services.
+"""
+
 from process_bigraph import Process, ProcessTypes, deep_merge
 from simservice.service_factory import process_factory
 
@@ -52,24 +56,34 @@ class SimServiceProcess(Process):
             assert hasattr(self.service, method), f"Method {method['set']} not found in service {self.service_name}"
 
     def update(self, inputs, interval):
-        print(type(self), inputs)
+        # print(type(self), inputs)
 
+        # set the inputs
         for key, value in inputs.items():
+            # skip disabled ports
             if key in self.process_config['disable_ports'].get('inputs'):
                 continue
+
+            # retrieve the set method and call it
             method = self.access_methods['inputs'][key]
             set_method = getattr(self.service, method)
             set_method(value)
 
+        # step the sim service
         self.service.step()
 
+        # get the outputs
         outputs = {}
         for key, method in self.access_methods['outputs'].items():
+            # skip disabled ports
             if key in self.process_config['disable_ports'].get('outputs'):
                 continue
+
+            # retrieve the get method and call it
             get_method = getattr(self.service, method)
             outputs[key] = get_method()
 
+        # print(type(self), outputs)
         return outputs
 
     def pre_run(self, config=None):
