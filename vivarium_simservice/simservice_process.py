@@ -10,7 +10,8 @@ class SimServiceProcess(Process):
     config_schema = {
         'process_config': {
             'disable_ports': 'map[string]'
-        }
+        },
+        'simservice_config': 'tree[any]'
     }
 
     access_methods = {
@@ -25,11 +26,12 @@ class SimServiceProcess(Process):
 
         # TODO -- find a way to parse out simservice config and process config
         self.process_config = self.config.pop('process_config', {})
+        self.simservice_config = self.config.pop('simservice_config', {})
 
         self.service = process_factory(
             self.service_name,
             *[],
-            **self.config)
+            **self.simservice_config)
 
         self.pre_run(config)
         self.service.run()
@@ -61,7 +63,7 @@ class SimServiceProcess(Process):
         # set the inputs
         for key, value in inputs.items():
             # skip disabled ports
-            if key in self.process_config['disable_ports'].get('inputs'):
+            if key in self.process_config['disable_ports'].get('inputs', {}):
                 continue
 
             # retrieve the set method and call it
@@ -76,7 +78,7 @@ class SimServiceProcess(Process):
         outputs = {}
         for key, method in self.access_methods['outputs'].items():
             # skip disabled ports
-            if key in self.process_config['disable_ports'].get('outputs'):
+            if key in self.process_config['disable_ports'].get('outputs', {}):
                 continue
 
             # retrieve the get method and call it

@@ -101,6 +101,12 @@ class CC3DProcess(SimServiceProcess):
     }
     service_name = SERVICE_NAME
 
+    def __init__(self, config=None, core=None):
+        # Extract implementation-specific inputs
+        self._specs = {'dim': config['dim']}
+        self._initial_mask = config['initial_mask']
+        super().__init__(config, core)
+
     def inputs(self):
         return {
             'target_volumes': {
@@ -121,7 +127,7 @@ class CC3DProcess(SimServiceProcess):
                 '_data': 'integer',
                 '_apply': 'set',
             }
-        },
+        }
 
     def pre_run(self, config=None):
         self.service.register_specs(specs(**self._specs))

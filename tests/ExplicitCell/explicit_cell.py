@@ -14,8 +14,8 @@ if __name__ == '__main__':
     core = ProcessTypes()
 
     # Create the specs for a CC3D simulation
-    dim = [30, 30, 30]
-    cells = [6, 6, 6]
+    dim = (30, 30, 30)
+    cells = (6, 6, 6)
 
     initial_mask = []
     for i in range(10):
@@ -39,6 +39,10 @@ if __name__ == '__main__':
                         'inputs': [],
                         'outputs': []
                     }
+                },
+                'simservice_config': {
+                    'dim': dim,
+                    'cells': cells,
                 }
             },
             'inputs': {
@@ -60,7 +64,8 @@ if __name__ == '__main__':
                         'inputs': [],
                         'outputs': []
                     }
-                }
+                },
+                # 'simservice_config': {}
             },
             'inputs': {
                 'target_volumes': ['target_volumes_store']
@@ -92,8 +97,6 @@ if __name__ == '__main__':
         {'state': composite},
         core=core
     )
-
-    import ipdb; ipdb.set_trace()
 
     sim.run(2)
     results = sim.gather_results()

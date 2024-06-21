@@ -336,9 +336,10 @@ class TissueForgeSimService(PySimService):
         self.next_mask: Optional[np.ndarray] = None
 
     def _run(self):
-        tf.init(dim=self.dim,
-                cells=self.cells,
-                dt=1.0 / self.num_steps,
+        tf.Logger.enableConsoleLogging(tf.Logger.TRACE)
+        tf.init(dim=list(self.dim),
+                cells=list(self.cells),
+                # dt=1.0 / self.num_steps,
                 bc={'x': tf.BOUNDARY_FREESLIP, 'y': tf.BOUNDARY_FREESLIP, 'z': tf.BOUNDARY_FREESLIP},
                 windowless=True,
                 window_size=[800 * 6, 600 * 6]
