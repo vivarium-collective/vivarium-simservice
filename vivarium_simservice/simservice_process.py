@@ -9,7 +9,10 @@ from simservice.service_factory import process_factory
 class SimServiceProcess(Process):
     config_schema = {
         'process_config': {
-            'disable_ports': 'map[string]'
+            'disable_ports': {
+                'inputs': 'list[string]',  # a list of input port ids to disable
+                'outputs': 'list[string]'  # a list of output port ids to disable
+            }
         },
         'simservice_config': 'tree[any]'
     }
@@ -59,15 +62,10 @@ class SimServiceProcess(Process):
 
     def update(self, inputs, interval):
         # print(type(self), inputs)
-
-        # TODO -- default values should be {} not None
-        disabled_input_ports = self.process_config['disable_ports']['inputs'] or {}
-        disabled_output_ports = self.process_config['disable_ports']['outputs'] or {}
-
         # set the inputs
         for key, value in inputs.items():
             # skip disabled ports
-            if key in disabled_input_ports:
+            if key in self.process_config['disable_ports']['inputs']:
                 continue
 
             # retrieve the set method and call it
@@ -82,7 +80,7 @@ class SimServiceProcess(Process):
         outputs = {}
         for key, method in self.access_methods['outputs'].items():
             # skip disabled ports
-            if key in disabled_output_ports:
+            if key in self.process_config['disable_ports']['outputs']:
                 continue
 
             # retrieve the get method and call it

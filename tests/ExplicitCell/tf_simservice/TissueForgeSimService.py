@@ -336,7 +336,7 @@ class TissueForgeSimService(PySimService):
         self.next_mask: Optional[np.ndarray] = None
 
     def _run(self):
-        tf.Logger.enableConsoleLogging(tf.Logger.TRACE)
+        # tf.Logger.enableConsoleLogging(tf.Logger.TRACE)
         tf.init(dim=list(self.dim),
                 cells=list(self.cells),
                 # dt=1.0 / self.num_steps,

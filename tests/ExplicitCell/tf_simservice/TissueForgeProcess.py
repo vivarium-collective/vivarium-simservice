@@ -27,6 +27,8 @@ class TissueForgeProcess(SimServiceProcess):
             'cells': 'tuple[integer,integer,integer]',
             'per_dim': 'integer',
             'num_steps': 'integer',
+            'cell_id': 'integer',
+            'initial_mask': 'array[integer]',
         })
     config_schema.update()
 
@@ -41,6 +43,10 @@ class TissueForgeProcess(SimServiceProcess):
     }
     service_name = SERVICE_NAME
 
+    def on_start(self, config=None):
+        # TODO -- get the cell_id to match the mask
+        self.service.add_domain(self.config['cell_id'], self.config['initial_mask'])
+
     def inputs(self):
         return {
             'mask': {
@@ -54,7 +60,7 @@ class TissueForgeProcess(SimServiceProcess):
     def outputs(self):
         return {
             'domains': {
-                '_type': 'any',
+                '_type': 'any',   # TODO -- make this a real type
             }
         }
 
