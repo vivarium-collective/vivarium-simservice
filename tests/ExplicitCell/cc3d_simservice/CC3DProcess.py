@@ -73,9 +73,9 @@ class InterfaceSteppable(SteppableBasePy):
     def cell_ids(self) -> List[int]:
         return [cell.id for cell in self.cell_list]
 
-    def set_target_volumes(self, info: List[Tuple[int, float]]):
-        for cell_id, cell_target_volume_ratio in info:
-            cell = self.fetch_cell_by_id(cell_id)
+    def set_target_volumes(self, volumes):
+        for cell_id, cell_target_volume_ratio in volumes.items():
+            cell = self.fetch_cell_by_id(int(cell_id))
             if cell is None:
                 warnings.warn(f'Unknown cell id: {cell_id}')
             else:
@@ -87,7 +87,7 @@ class CC3DProcess(SimServiceProcess):
         dct=copy.deepcopy(SimServiceProcess.config_schema),
         merge_dct={
             'dim': 'tuple[integer,integer]',
-            'initial_mask': 'Any',
+            'initial_mask': 'any',
         })
 
     access_methods = {
@@ -109,11 +109,7 @@ class CC3DProcess(SimServiceProcess):
 
     def inputs(self):
         return {
-            'target_volumes': {
-                '_type': 'list',
-                '_apply': 'set'
-            }
-        }
+            'target_volumes': 'map[float]'}
 
     def outputs(self):
         return {

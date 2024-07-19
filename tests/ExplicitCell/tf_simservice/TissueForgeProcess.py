@@ -59,9 +59,10 @@ class TissueForgeProcess(SimServiceProcess):
 
     def outputs(self):
         return {
-            'domains': {
-                '_type': 'any',   # TODO -- make this a real type
-            }
+            'domains': 'domains'
+            # 'domains': {
+            #     '_type': 'any',   # TODO -- make this a real type
+            # }
         }
 
 
