@@ -458,5 +458,7 @@ class TissueForgeSimService(PySimService):
         for domain_id, domain_data in self.domains.items():
             boundary_pos = [tf.ParticleHandle(pid).position.as_list() for pid in domain_data.boundary_ids]
             internal_pos = [tf.ParticleHandle(pid).position.as_list() for pid in domain_data.internal_ids]
-            result[domain_id] = boundary_pos, internal_pos
+            # todo: process-bigraph requires keys to be strings: hierarchy_depth assumes that all keys are strings;
+            #  probably not a conducive requirement for general interoperability.
+            result[str(domain_id)] = boundary_pos, internal_pos
         return result

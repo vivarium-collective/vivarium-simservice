@@ -87,7 +87,7 @@ class CC3DProcess(SimServiceProcess):
         dct=copy.deepcopy(SimServiceProcess.config_schema),
         merge_dct={
             'dim': 'tuple[integer,integer]',
-            'initial_mask': 'list[tuple[integer,integer]]',
+            'initial_mask': 'Any',
         })
 
     access_methods = {
@@ -134,10 +134,16 @@ class CC3DProcess(SimServiceProcess):
         self.service.register_steppable(InterfaceSteppable)
 
     def on_start(self, config=None):
+        cell_ids = [cid for cid in np.unique(self._initial_mask) if cid != 0]
+        initial_masks = []
+        for cid in cell_ids:
+            xcoords, ycoords = np.where(self._initial_mask == cid)
+            initial_masks.append([(int(xcoords[i]), int(ycoords[i])) for i in range(xcoords.shape[0])])
         # Handle service functions not being immediately available after startup
         while True:
             try:
-                self.service.add_cell(self._initial_mask)
+                for im in initial_masks:
+                    self.service.add_cell(im)
                 break
             except AttributeError:
                 pass
@@ -154,7 +160,8 @@ def run_cc3d_alone():
     core = ProcessTypes()
 
     dim = (30, 30)
-    initial_mask = [(15, 15)]
+    initial_mask = np.zeros(dim, dtype=int)
+    initial_mask[10:15, 10:15] = 1
 
     composite = {
         'cc3d': {
@@ -163,9 +170,11 @@ def run_cc3d_alone():
             'config': {
                 'dim': dim,
                 'initial_mask': initial_mask,
-                'disable_ports': {
-                    'inputs': [],
-                    'outputs': []
+                'process_config': {
+                    'disable_ports': {
+                        'inputs': [],
+                        'outputs': []
+                    }
                 }
             },
             'inputs': {

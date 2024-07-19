@@ -77,9 +77,11 @@ def run_tissue_forge_alone():
                 'cells': [3, 3, 3],
                 'per_dim': 5,
                 'num_steps': 1000,
-                'disable_ports': {
-                    'inputs': [],
-                    'outputs': []
+                'process_config': {
+                    'disable_ports': {
+                        'inputs': [],
+                        'outputs': []
+                    }
                 }
             },
         }

@@ -40,12 +40,6 @@ if __name__ == '__main__':
     dim = (30, 30, 30)
     cells = (6, 6, 6)
 
-    # TODO (TJ) -- this should go away in favor of the array
-    initial_mask = []
-    for i in range(10):
-        for j in range(10):
-            initial_mask.append((i+10, j+10))
-
     # make an initial mask array
     initial_mask_array = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     initial_mask_array[10:20, 10:20] = 1
@@ -60,7 +54,7 @@ if __name__ == '__main__':
             'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
             'config': {
                 'dim': (dim[0], dim[1]),
-                'initial_mask': initial_mask,  # TODO (TJ) -- this should use initial_mask_array instead of the list of tuples
+                'initial_mask': initial_mask_array,
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
