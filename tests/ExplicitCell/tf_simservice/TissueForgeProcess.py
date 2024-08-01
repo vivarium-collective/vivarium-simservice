@@ -29,7 +29,7 @@ class TissueForgeProcess(SimServiceProcess):
             'num_steps': 'integer',
             'cell_id': 'integer',
             'initial_mask': 'array[integer]',
-            'growth_rate': 'int'
+            'growth_rate': 'integer'
         })
     config_schema.update()
 

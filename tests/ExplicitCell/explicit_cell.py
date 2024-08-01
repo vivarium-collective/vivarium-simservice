@@ -168,6 +168,8 @@ def test_one_cell_two_directions(core):
     initial_mask_array = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     initial_mask_array[10:20, 10:20] = 1
 
+    init_cell_volume_target = 100.0
+
     # list of initial cell ids
     initial_cell_ids = [1]  # make this work for multiple cells
 
@@ -179,6 +181,7 @@ def test_one_cell_two_directions(core):
             'config': {
                 'dim': (dim[0], dim[1]),
                 'initial_mask': initial_mask_array,
+                'init_cell_volume_target': init_cell_volume_target,
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
@@ -209,6 +212,7 @@ def test_one_cell_two_directions(core):
                 'cells': cells,
                 'per_dim': 5,
                 'num_steps': 1000,
+                'growth_rate': 0,   # number of particles added every simulation step
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
@@ -266,6 +270,7 @@ def test_one_cell_two_directions(core):
                 'volumes': ['target_volumes_store'],
             }
         },
+        'domains_store': {'1': []}  # TODO (Ryan) -- this seems to want an existing value
     }
 
     # combine all the specs
