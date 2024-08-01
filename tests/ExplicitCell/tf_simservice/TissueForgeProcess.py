@@ -29,13 +29,15 @@ class TissueForgeProcess(SimServiceProcess):
             'num_steps': 'integer',
             'cell_id': 'integer',
             'initial_mask': 'array[integer]',
+            'growth_rate': 'int'
         })
     config_schema.update()
 
     # access methods for the ports
     access_methods = {
         'inputs': {
-            'mask': 'set_next_mask'
+            'mask': 'set_next_mask',
+            'growth_rates': 'set_growth_rates'
         },
         'outputs': {
             'domains': 'get_domains'
@@ -45,7 +47,7 @@ class TissueForgeProcess(SimServiceProcess):
 
     def on_start(self, config=None):
         # TODO -- get the cell_id to match the mask
-        self.service.add_domain(self.config['cell_id'], self.config['initial_mask'])
+        self.service.add_domain(self.config['cell_id'], self.config['initial_mask'], self.config['growth_rate'])
 
     def inputs(self):
         return {
@@ -54,6 +56,12 @@ class TissueForgeProcess(SimServiceProcess):
                 '_shape': (self.config['dim'][0], self.config['dim'][1]),
                 '_data': 'integer',
                 '_apply': 'set',
+            },
+            'growth_rates': {
+                '_type': 'map',
+                '_value': {
+                    '_type': 'int'
+                }
             }
         }
 

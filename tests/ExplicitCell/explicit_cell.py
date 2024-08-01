@@ -42,6 +42,15 @@ def test_one_cell_one_direction(core):
     initial_mask_array = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     initial_mask_array[10:20, 10:20] = 1
 
+    # initial cell target volume
+    init_cell_volume_target = 100.0
+
+    # number of fluid particles is per_dim ** 2 * no. cell sites
+    # per_dim = 5
+    # no. cell sites = 100
+    # result was 400
+    # (5 * 10 - 2) ** 2
+
     # list of initial cell ids
     initial_cell_ids = [1]  # make this work for multiple cells
 
@@ -53,6 +62,7 @@ def test_one_cell_one_direction(core):
             'config': {
                 'dim': (dim[0], dim[1]),
                 'initial_mask': initial_mask_array,
+                'init_cell_volume_target': init_cell_volume_target,
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
@@ -79,10 +89,7 @@ def test_one_cell_one_direction(core):
             'config': {
                 'cell_id': cell_id,
                 'initial_mask': initial_mask_array,
-                'dim': dim,
-                'cells': cells,
-                'per_dim': 5,
-                'num_steps': 1000,
+                'growth_rate': 0,
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
@@ -92,6 +99,8 @@ def test_one_cell_one_direction(core):
                 'simservice_config': {
                     'dim': dim,
                     'cells': cells,
+                    'per_dim': 5,
+                    'num_steps': 1000,
                 }
             },
             'inputs': {
