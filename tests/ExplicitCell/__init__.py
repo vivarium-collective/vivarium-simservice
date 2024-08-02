@@ -17,4 +17,7 @@ def register_types(core):
                 '_type': 'tuple',
                 '_apply': 'set',
                 '_0': 'positions',
-                '_1': 'positions'}})
+                '_1': 'positions'
+            }
+        }
+    )

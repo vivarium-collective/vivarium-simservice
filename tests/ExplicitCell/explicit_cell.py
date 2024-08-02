@@ -24,6 +24,8 @@ from process_bigraph import Composite, ProcessTypes
 import numpy as np
 
 # these imports are done to import to registry
+from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name
+from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name
 from tests.ExplicitCell import register_types
 
 
@@ -271,7 +273,7 @@ def test_one_cell_two_directions(core):
                 'volumes': ['target_volumes_store'],
             }
         },
-        'domains_store': {'1': []}  # TODO (Ryan) -- this seems to want an existing value
+        # 'domains_store': {'1': []}  # TODO (Ryan) -- this seems to want an existing value
     }
 
     # combine all the specs
@@ -291,7 +293,6 @@ def test_one_cell_two_directions(core):
     # run it
     sim.run(5)
     results = sim.gather_results()
-
 
     print(results)
 
