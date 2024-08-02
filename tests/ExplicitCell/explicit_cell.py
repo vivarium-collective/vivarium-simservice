@@ -24,16 +24,14 @@ from process_bigraph import Composite, ProcessTypes
 import numpy as np
 
 # these imports are done to import to registry
-from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name
-from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name
-from vivarium_simservice.emitter import get_emitter_schema
 from tests.ExplicitCell import register_types
-
-cell_type_name = 'cell'
-
 
 
 def test_one_cell_one_direction(core):
+    """
+    Run a cell model that connects CC3D and TissueForge, with interactions going in one direction, from CC3D to TissueForge.
+    """
+
     # Create the specs for a CC3D simulation
     dim = (30, 30, 30)
     cells = (6, 6, 6)
@@ -69,7 +67,6 @@ def test_one_cell_one_direction(core):
                         'outputs': []
                     }
                 },
-                # 'simservice_config': {}
             },
             'inputs': {
                 'target_volumes': ['target_volumes_store']
@@ -153,13 +150,13 @@ def test_one_cell_one_direction(core):
     # run it
     sim.run(5)
     results = sim.gather_results()
-
-    import ipdb; ipdb.set_trace()
-
     print(results)
 
     
 def test_one_cell_two_directions(core):
+    """
+    Run a cell model that connects CC3D and TissueForge, with interactions going in both directions.
+    """
     # Create the specs for a CC3D simulation
     dim = (30, 30, 30)
     cells = (6, 6, 6)
@@ -188,7 +185,6 @@ def test_one_cell_two_directions(core):
                         'outputs': []
                     }
                 },
-                # 'simservice_config': {}
             },
             'inputs': {
                 'target_volumes': ['target_volumes_store']
@@ -229,22 +225,27 @@ def test_one_cell_two_directions(core):
             },
             'outputs': {
                 'domains': ['domains_store']
-                # TODO map output to target_volumes
             }
         } for cell_id in initial_cell_ids
     }
 
+    # make a volume adapter that connects the fluid particles to the volume
     volume_config = {
         'volume_adapter': {
             '_type': 'step',
             'address': 'local:!tests.ExplicitCell.adapters.volume_from_particles.VolumeFromParticles',
             'config': {
                 # TODO: calculate this from the initial fluid particles
-                'optimal_density': 0.25},
+                'optimal_density': 0.25
+            },
             'inputs': {
-                'domains': ['domains_store']},
+                'domains': ['domains_store']
+            },
             'outputs': {
-                'volumes': ['target_volumes_store']}}}
+                'volumes': ['target_volumes_store']
+            }
+        }
+    }
 
     # configure the ram emitter
     ram_emitter_config = {
@@ -291,7 +292,6 @@ def test_one_cell_two_directions(core):
     sim.run(5)
     results = sim.gather_results()
 
-    import ipdb; ipdb.set_trace()
 
     print(results)
 
