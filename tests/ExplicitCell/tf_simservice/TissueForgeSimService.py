@@ -1,4 +1,4 @@
-import os.path
+import random
 
 import numpy as np
 from simservice.PySimService import PySimService
@@ -330,6 +330,7 @@ class TissueForgeSimService(PySimService):
         self.num_refinements = num_refinements
 
         self.domains: Dict[int, DomainData] = {}
+        self.growth_rates: Dict[int, int] = {}
         self.coords_y, self.coords_x = np.meshgrid(np.linspace(0.5, dim[1] - 0.5, int(dim[1])),
                                                    np.linspace(0.5, dim[0] - 0.5, int(dim[0])))
 
@@ -396,6 +397,38 @@ class TissueForgeSimService(PySimService):
 
         tf.step(tf.Universe.dt * self.num_steps)
 
+        # Apply growth rates
+        for cell_id, growth_rate in self.growth_rates.items():
+            if growth_rate == 0:
+                continue
+
+            num_internal = len(self.domains[cell_id].internal_ids)
+            if growth_rate < 0 and growth_rate < -num_internal:
+                growth_rate = max(growth_rate, -num_internal)
+
+            if growth_rate < 0:
+                if growth_rate < -num_internal:
+                    growth_rate_actual = -num_internal
+                else:
+                    growth_rate_actual = growth_rate
+
+                internal_ids_copy = self.domains[cell_id].internal_ids.copy()
+                random.shuffle(internal_ids_copy)
+                for pid in internal_ids_copy[:-growth_rate_actual]:
+                    tf.ParticleHandle(pid).destroy()
+                    self.domains[cell_id].internal_ids.remove(pid)
+            elif growth_rate > 0:
+                internal_ids_copy = self.domains[cell_id].internal_ids.copy()
+                random.shuffle(internal_ids_copy)
+                for pid in internal_ids_copy[:growth_rate]:
+                    pp = tf.ParticleHandle(pid)
+                    radius = pp.radius
+                    angle = random.random() * np.pi * 2
+                    direction = tf.FVector3(np.cos(angle), np.sin(angle), 0.0)
+                    pc = pp.split(direction)
+                    pp.radius = pc.radius = radius
+                    self.domains[cell_id].internal_ids.append(pc.id)
+
         # Refresh boundaries
         boundary_type = BoundaryType.get()
         for cell_id in new_pos.keys():
@@ -412,7 +445,7 @@ class TissueForgeSimService(PySimService):
         """Sets the next mask"""
         self.next_mask = mask
 
-    def add_domain(self, cell_id: int, mask: np.ndarray):
+    def add_domain(self, cell_id: int, mask: np.ndarray, growth_rate: int):
         """Adds a domain"""
 
         # Generate outline
@@ -423,6 +456,7 @@ class TissueForgeSimService(PySimService):
 
         # Generate internal positions
         int_pos = internal_positions(cell_id, mask, (self.coords_x, self.coords_y), self.per_dim)
+        print(f'No. internal particles: {int_pos.shape}')
 
         # Calculate centroid for cluster
         com = tf.FVector2(0)
@@ -446,6 +480,7 @@ class TissueForgeSimService(PySimService):
                                                           velocity=tf.FVector3(0)).id)
 
         self.domains[cell_id] = domain_data
+        self.growth_rates[cell_id] = growth_rate
         self.next_mask = mask
 
     def equilibrate(self, num_steps=10000):
@@ -462,3 +497,13 @@ class TissueForgeSimService(PySimService):
             #  probably not a conducive requirement for general interoperability.
             result[str(domain_id)] = boundary_pos, internal_pos
         return result
+
+    def set_growth_rates(self, ids_rates_map: Dict[str, int]):
+        """Set the growth rate of all cells"""
+        for cell_id, growth_rate in ids_rates_map.items():
+            # todo: assuming another case of process-bigraph using strings for keys as a requirement
+            cell_id_int = int(cell_id)
+            if cell_id_int not in self.growth_rates:
+                print('Cell id not known:', cell_id_int)
+                continue
+            self.growth_rates[cell_id_int] = growth_rate
