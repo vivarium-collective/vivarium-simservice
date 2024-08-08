@@ -22,11 +22,138 @@ cell_manager = {
 """
 from process_bigraph import Composite, ProcessTypes
 import numpy as np
+from matplotlib import animation
+from matplotlib import colors as mcolors
+from matplotlib import pyplot as plt
+from matplotlib.collections import PathCollection
+from matplotlib.image import AxesImage
+from matplotlib.axis import Axis
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # these imports are done to import to registry
 from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name
 from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name
 from tests.ExplicitCell import register_types
+
+
+ColorData = Union[str, Tuple[float, float, float]]
+ParticleData = List[Tuple[float, float, float]]
+
+DEF_PARTICLE_COLOR_CYT = 'red'
+"""Default color for cytosolic particles"""
+DEF_PARTICLE_COLOR_MEM = 'blue'
+"""Default color for membrane particles"""
+
+
+def plot_cell_field(mask: np.ndarray,
+                    im: AxesImage = None,
+                    fig_ax: Tuple[plt.Figure, Axis] = None,
+                    fig_kwargs: Dict[str, Any] = None,
+                    plot_kwargs: Dict[str, Any] = None) -> Tuple[Optional[plt.Figure], Optional[Axis], AxesImage]:
+    """Plot a cell field"""
+
+    viz_tf = lambda x: np.flipud(np.transpose(x))
+    if im is not None:
+        im.set_array(viz_tf(mask))
+        return None, None, im
+
+    if fig_ax is None:
+        if fig_kwargs is None:
+            fig_kwargs = {}
+        fig, ax = plt.subplots(1, 1, **fig_kwargs)
+    else:
+        fig, ax = fig_ax
+
+    if plot_kwargs is None:
+        plot_kwargs = {}
+    im: AxesImage = ax.imshow(viz_tf(mask), **plot_kwargs)
+
+    return fig, ax, im
+
+
+def plot_cell_particles(particle_data: Union[Tuple[ParticleData, ParticleData], List[Tuple[ParticleData, ParticleData]]],
+                        sca: PathCollection = None,
+                        fig_ax: Tuple[plt.Figure, Axis] = None,
+                        colors: Union[Tuple[ColorData, ColorData], List[Tuple[ColorData, ColorData]]] = None,
+                        fig_kwargs: Dict[str, Any] = None,
+                        plot_kwargs: Dict[str, Any] = None) -> Tuple[Optional[plt.Figure], Optional[Axis], PathCollection]:
+    """Plot the particles comprising one or more cells"""
+
+    _particle_data = [particle_data] if isinstance(particle_data, tuple) else particle_data
+
+    if colors is None:
+        _colors = [(DEF_PARTICLE_COLOR_MEM, DEF_PARTICLE_COLOR_CYT)]
+    else:
+        _colors = [colors] if isinstance(colors, tuple) else colors
+
+    colors_rgb = []
+    for c in _colors:
+        c0 = mcolors.to_rgb(c[0]) if isinstance(c[0], str) else c[0]
+        c1 = mcolors.to_rgb(c[1]) if isinstance(c[1], str) else c[1]
+        colors_rgb.append((c0, c1))
+
+    num_particles = sum([len(d[0]) + len(d[1]) for d in _particle_data])
+    particle_data_arr = np.ndarray((num_particles, 2), dtype=float)
+    colors_arr = np.ndarray((num_particles, 3), dtype=float)
+    idx = 0
+    for i, cell_data in enumerate(_particle_data):
+        colors_i = colors_rgb[i % len(colors_rgb)]
+        for j, cd in enumerate(cell_data):
+            num_particles_j = len(cd)
+            particle_data_arr[idx:idx + num_particles_j, :] = np.asarray(cd, dtype=float)[:, :2]
+            colors_arr[idx: idx + num_particles_j, :] = np.asarray([colors_i[j]] * num_particles_j, dtype=float)
+            idx += num_particles_j
+
+    if sca is not None:
+        sca.set_offsets(particle_data_arr)
+        sca.set_array(colors_arr)
+        return None, None, sca
+
+    if fig_ax is None:
+        if fig_kwargs is None:
+            fig_kwargs = {}
+        fig, ax = plt.subplots(1, 1, **fig_kwargs)
+    else:
+        fig, ax = fig_ax
+
+    if plot_kwargs is None:
+        plot_kwargs = {}
+    sca = ax.scatter(particle_data_arr[:, 0], particle_data_arr[:, 1], c=colors_arr, **plot_kwargs)
+
+    return fig, ax, sca
+
+
+class ResultsAnimator:
+    """Animate results"""
+
+    def __init__(self, results):
+
+        self.results = results
+        self.fig, self.axs = plt.subplots(1, 2, layout='compressed', figsize=(6.0, 3.0))
+        self.stream = self.data_stream()
+        self.ani = animation.FuncAnimation(self.fig, self.update,
+                                           init_func=self.setup_plot,
+                                           blit=True,
+                                           interval=60)
+
+    def data_stream(self):
+        i = -1
+        while True:
+            i = (i + 1) % (len(self.results) - 1)
+            yield self.results[i]['mask'], list(self.results[i+1]['domains'].values())
+
+    def setup_plot(self):
+        im = plot_cell_field(self.results[0]['mask'], fig_ax=(self.fig, self.axs[0]))[2]
+        sca = plot_cell_particles(list(self.results[1]['domains'].values()), fig_ax=(self.fig, self.axs[0]))[2]
+        return im, sca
+
+    def update(self, i):
+        data = next(self.stream)
+
+        im = plot_cell_field(data[0], fig_ax=(self.fig, self.axs[0]))[2]
+        sca = plot_cell_particles(data[1], fig_ax=(self.fig, self.axs[1]))[2]
+
+        return im, sca
 
 
 def test_one_cell_one_direction(core):
@@ -295,6 +422,9 @@ def test_one_cell_two_directions(core):
     results = sim.gather_results()
 
     print(results)
+
+    anim = ResultsAnimator(results[('ram-emitter',)])
+    plt.show()
 
     
 
