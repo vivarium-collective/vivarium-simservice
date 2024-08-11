@@ -20,7 +20,12 @@ cell_manager = {
     }
 }
 """
+import os
 from process_bigraph import Composite, ProcessTypes
+import imageio.v2 as imageio
+import io
+import base64
+from IPython.display import HTML, display
 import numpy as np
 from matplotlib import animation
 from matplotlib import colors as mcolors
@@ -31,8 +36,8 @@ from matplotlib.axis import Axis
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # these imports are done to import to registry
-from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name
-from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name
+from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name  # DO NOT REMOVE
+from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name  # DO NOT REMOVE
 from tests.ExplicitCell import register_types
 
 
@@ -121,6 +126,52 @@ def plot_cell_particles(particle_data: Union[Tuple[ParticleData, ParticleData], 
     sca = ax.scatter(particle_data_arr[:, 0], particle_data_arr[:, 1], c=colors_arr, **plot_kwargs)
 
     return fig, ax, sca
+
+def adjust_particles(particles, dx, dy, dz=0):
+    """Adjust particle positions by a given delta x (dx) and delta y (dy)."""
+    adjusted_particles = []
+    for particle_set in particles[0]:
+        adjusted_set = [(x + dx, y + dy, z + dz) for (x, y, z) in particle_set]
+        adjusted_particles.append(adjusted_set)
+    return [adjusted_particles]
+
+
+def generate_frames_and_save_gif(results, output_dir='frames', gif_filename='animation.gif'):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    images = []
+    for i in range(len(results) - 1):  # Stops before the last element
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+        mask = results[i]['mask']
+        adjusted_mask = np.rot90(np.flipud(mask), k=2)
+        particles = list(results[i + 1]['domains'].values())
+        adjusted_particles = adjust_particles(particles, dx=-0.5, dy=-0.5)
+
+        # Plot cell field
+        _, _, im_field = plot_cell_field(adjusted_mask, fig_ax=(fig, ax))
+
+        # Plot particles over the cell field
+        _, _, im_particles = plot_cell_particles(adjusted_particles, fig_ax=(fig, ax))
+
+        # Save the current figure to a temporary buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=120)
+        buf.seek(0)
+        images.append(imageio.imread(buf))
+        buf.close()
+        plt.close(fig)
+
+        # Create and save the GIF with loop=0 for infinite loop
+    imageio.mimsave(gif_filename, images, duration=0.5, loop=0)
+
+    # Optionally display the GIF in a Jupyter notebook
+    with open(gif_filename, 'rb') as file:
+        data = file.read()
+        data_url = 'data:image/gif;base64,' + base64.b64encode(data).decode()
+    display(HTML(f'<img src="{data_url}" alt="Simulation Results Animation" style="max-width:100%;"/>'))
+
+    print(f'GIF saved as {gif_filename}')
 
 
 class ResultsAnimator:
@@ -270,6 +321,7 @@ def test_one_cell_one_direction(core):
         **ram_emitter_config
     }
 
+
     # initialize the composite
     sim = Composite(
         {'state': composite},
@@ -279,7 +331,7 @@ def test_one_cell_one_direction(core):
     # run it
     sim.run(5)
     results = sim.gather_results()
-    print(results)
+    # print(results)
 
     
 def test_one_cell_two_directions(core):
@@ -304,6 +356,7 @@ def test_one_cell_two_directions(core):
         'cc3d': {
             '_type': 'process',
             'address': 'local:!cc3d_simservice.CC3DProcess.CC3DProcess',
+            # 'address': 'local:!cc3d_simservice.MorpheusProcess.MorpheusProcess',
             'config': {
                 'dim': (dim[0], dim[1]),
                 'initial_mask': initial_mask_array,
@@ -337,7 +390,7 @@ def test_one_cell_two_directions(core):
                 'cells': cells,
                 'per_dim': 5,
                 'num_steps': 1000,
-                'growth_rate': 0,   # number of particles added every simulation step
+                'growth_rate': 1.0,   # number of particles added every simulation step
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
@@ -411,6 +464,8 @@ def test_one_cell_two_directions(core):
         **ram_emitter_config
     }
 
+    # print(composite)
+
     # initialize the composite
     sim = Composite(
         {'state': composite},
@@ -418,15 +473,15 @@ def test_one_cell_two_directions(core):
     )
 
     # run it
-    sim.run(5)
+    sim.run(60)
     results = sim.gather_results()
 
-    print(results)
+    # print(results)
+    generate_frames_and_save_gif(results[('ram-emitter',)], output_dir='frames', gif_filename='animation.gif')
 
-    anim = ResultsAnimator(results[('ram-emitter',)])
-    plt.show()
+    # anim = ResultsAnimator(results[('ram-emitter',)])
+    # plt.show()
 
-    
 
 
 if __name__ == '__main__':
