@@ -40,7 +40,6 @@ from cc3d_simservice.CC3DProcess import SERVICE_NAME as cc3d_service_name  # DO 
 from tf_simservice.TissueForgeProcess import SERVICE_NAME as tf_service_name  # DO NOT REMOVE
 from tests.ExplicitCell import register_types
 
-
 ColorData = Union[str, Tuple[float, float, float]]
 ParticleData = List[Tuple[float, float, float]]
 
@@ -76,12 +75,13 @@ def plot_cell_field(mask: np.ndarray,
     return fig, ax, im
 
 
-def plot_cell_particles(particle_data: Union[Tuple[ParticleData, ParticleData], List[Tuple[ParticleData, ParticleData]]],
-                        sca: PathCollection = None,
-                        fig_ax: Tuple[plt.Figure, Axis] = None,
-                        colors: Union[Tuple[ColorData, ColorData], List[Tuple[ColorData, ColorData]]] = None,
-                        fig_kwargs: Dict[str, Any] = None,
-                        plot_kwargs: Dict[str, Any] = None) -> Tuple[Optional[plt.Figure], Optional[Axis], PathCollection]:
+def plot_cell_particles(
+        particle_data: Union[Tuple[ParticleData, ParticleData], List[Tuple[ParticleData, ParticleData]]],
+        sca: PathCollection = None,
+        fig_ax: Tuple[plt.Figure, Axis] = None,
+        colors: Union[Tuple[ColorData, ColorData], List[Tuple[ColorData, ColorData]]] = None,
+        fig_kwargs: Dict[str, Any] = None,
+        plot_kwargs: Dict[str, Any] = None) -> Tuple[Optional[plt.Figure], Optional[Axis], PathCollection]:
     """Plot the particles comprising one or more cells"""
 
     _particle_data = [particle_data] if isinstance(particle_data, tuple) else particle_data
@@ -126,6 +126,7 @@ def plot_cell_particles(particle_data: Union[Tuple[ParticleData, ParticleData], 
     sca = ax.scatter(particle_data_arr[:, 0], particle_data_arr[:, 1], c=colors_arr, **plot_kwargs)
 
     return fig, ax, sca
+
 
 def adjust_particles(particles, dx, dy, dz=0):
     """Adjust particle positions by a given delta x (dx) and delta y (dy)."""
@@ -178,7 +179,6 @@ class ResultsAnimator:
     """Animate results"""
 
     def __init__(self, results):
-
         self.results = results
         self.fig, self.axs = plt.subplots(1, 2, layout='compressed', figsize=(6.0, 3.0))
         self.stream = self.data_stream()
@@ -191,7 +191,7 @@ class ResultsAnimator:
         i = -1
         while True:
             i = (i + 1) % (len(self.results) - 1)
-            yield self.results[i]['mask'], list(self.results[i+1]['domains'].values())
+            yield self.results[i]['mask'], list(self.results[i + 1]['domains'].values())
 
     def setup_plot(self):
         im = plot_cell_field(self.results[0]['mask'], fig_ax=(self.fig, self.axs[0]))[2]
@@ -321,7 +321,6 @@ def test_one_cell_one_direction(core):
         **ram_emitter_config
     }
 
-
     # initialize the composite
     sim = Composite(
         {'state': composite},
@@ -333,20 +332,17 @@ def test_one_cell_one_direction(core):
     results = sim.gather_results()
     # print(results)
 
-    
-def test_one_cell_two_directions(core):
-    """
-    Run a cell model that connects CC3D and TissueForge, with interactions going in both directions.
-    """
+
+def get_one_cell_two_direction_config(
+        dim=(30, 30, 30),
+        cells=(6, 6, 6),
+        init_cell_volume_target=100.0,
+):
     # Create the specs for a CC3D simulation
-    dim = (30, 30, 30)
-    cells = (6, 6, 6)
 
     # make an initial mask array
     initial_mask_array = np.zeros(shape=(dim[0], dim[1]), dtype=int)
     initial_mask_array[10:20, 10:20] = 1
-
-    init_cell_volume_target = 100.0
 
     # list of initial cell ids
     initial_cell_ids = [1]  # make this work for multiple cells
@@ -390,7 +386,7 @@ def test_one_cell_two_directions(core):
                 'cells': cells,
                 'per_dim': 5,
                 'num_steps': 1000,
-                'growth_rate': 1.0,   # number of particles added every simulation step
+                'growth_rate': 1.0,  # number of particles added every simulation step
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
@@ -453,18 +449,19 @@ def test_one_cell_two_directions(core):
                 'volumes': ['target_volumes_store'],
             }
         },
-        # 'domains_store': {'1': []}  # TODO (Ryan) -- this seems to want an existing value
     }
 
     # combine all the specs
-    composite = {
+    return {
         **tissue_forge_config_dict,
         **compucell_config_dict,
         **volume_config,
         **ram_emitter_config
     }
 
-    # print(composite)
+
+def test_one_cell_two_directions(core):
+    composite = get_one_cell_two_direction_config()
 
     # initialize the composite
     sim = Composite(
@@ -481,7 +478,6 @@ def test_one_cell_two_directions(core):
 
     # anim = ResultsAnimator(results[('ram-emitter',)])
     # plt.show()
-
 
 
 if __name__ == '__main__':
