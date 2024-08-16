@@ -21,3 +21,8 @@ def register_types(core):
             }
         }
     )
+
+    core.register(
+        'parent_child_ids',
+        'list[tuple[int,int]]'
+    )

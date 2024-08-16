@@ -334,9 +334,10 @@ def test_one_cell_one_direction(core):
 
 
 def get_one_cell_two_direction_config(
-        dim=(30, 30, 30),
-        cells=(6, 6, 6),
-        init_cell_volume_target=100.0,
+    dim=(30, 30, 30),
+    cells=(6, 6, 6),
+    init_cell_volume_target=100.0,
+    init_split_threshold=200.0
 ):
     # Create the specs for a CC3D simulation
 
@@ -357,6 +358,7 @@ def get_one_cell_two_direction_config(
                 'dim': (dim[0], dim[1]),
                 'initial_mask': initial_mask_array,
                 'init_cell_volume_target': init_cell_volume_target,
+                'init_split_threshold': init_split_threshold,
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],
@@ -365,11 +367,13 @@ def get_one_cell_two_direction_config(
                 },
             },
             'inputs': {
-                'target_volumes': ['target_volumes_store']
+                'target_volumes': ['target_volumes_store'],
+                'split_threshold': ['split_threshold_store']
             },
             'outputs': {
                 'cell_ids': ['cell_ids_store'],
-                'mask': ['mask_store']
+                'mask': ['mask_store'],
+                'divided_cell_ids': ['divided_cell_ids_store']
             }
         },
     }

@@ -10,7 +10,7 @@ import warnings
 from vivarium_simservice.simservice_process import SimServiceProcess
 from cc3d.core.simservice.PyServiceCC3D import SERVICE_NAME
 from cc3d.core import PyCoreSpecs as pcs
-from cc3d.core.PySteppables import SteppableBasePy
+from cc3d.core.PySteppables import MitosisSteppableBase
 from simservice import service_function
 from process_bigraph import deep_merge
 
@@ -38,13 +38,17 @@ def specs(dim: Tuple[int, int]):
     return result
 
 
-class InterfaceSteppable(SteppableBasePy):
+class InterfaceSteppable(MitosisSteppableBase):
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
         self.init_cell_volume_target = 0
+        self.init_split_threshold = -1
+        self.split_thresholds = {}
+        # For capturing the id of a cell created during mitosis
+        self._new_cell_ids: List[Tuple[int, int]] = []
 
     def start(self):
         """Make proxy methods out of methods on this class"""
@@ -53,17 +57,40 @@ class InterfaceSteppable(SteppableBasePy):
         service_function(self.cell_ids)
         service_function(self.set_target_volumes)
         service_function(self.set_initial_target_volume)
+        service_function(self.set_split_thresholds)
+        service_function(self.set_initial_split_threshold)
+        service_function(self.divided_cell_ids)
+
+    def step(self, mcs):
+        self._new_cell_ids.clear()
+
+        # Implement a mitosis criterion
+        cells_to_divide = []
+        for cell_id, split_threshold in self.split_thresholds.items():
+            if split_threshold <= 0:
+                continue
+            cell = self.fetch_cell_by_id(cell_id)
+            if cell.volume >= split_threshold:
+                cells_to_divide.append(cell)
+        [self.divide_cell_along_major_axis(cell) for cell in cells_to_divide]
 
     @property
     def type(self):
         """Simple convenience property to get the label of the cell type"""
         return getattr(self.cell_type, cell_type_name)
 
+    def update_attributes(self):
+
+        self._new_cell_ids.append((self.parent_cell.id, self.child_cell.id))
+        self.parent_cell.targetVolume = self.init_cell_volume_target
+        self.clone_parent_2_child()
+
     def add_cell(self, loc: List[Tuple[int, int]]):
         """Adds a cell to the simulation"""
         new_cell = self.new_cell(self.type)
         new_cell.lambdaVolume = cell_volume_lambda
         new_cell.targetVolume = self.init_cell_volume_target
+        self.split_thresholds[new_cell.id] = self.init_split_threshold
         for x, y in loc:
             self.cell_field[x, y, 0] = new_cell
         return new_cell.id
@@ -90,6 +117,15 @@ class InterfaceSteppable(SteppableBasePy):
     def set_initial_target_volume(self, _cell_volume_target: float):
         self.init_cell_volume_target = _cell_volume_target
 
+    def set_split_thresholds(self, _split_thresholds):
+        self.split_thresholds = _split_thresholds
+
+    def set_initial_split_threshold(self, _split_threshold: float):
+        self.init_split_threshold = _split_threshold
+
+    def divided_cell_ids(self) -> List[Tuple[int, int]]:
+        return self._new_cell_ids
+
 
 class CC3DProcess(SimServiceProcess):
     config_schema = deep_merge(
@@ -97,16 +133,19 @@ class CC3DProcess(SimServiceProcess):
         merge_dct={
             'dim': 'tuple[integer,integer]',
             'initial_mask': 'any',
-            'init_cell_volume_target': 'float'
+            'init_cell_volume_target': 'float',
+            'init_split_threshold': 'float'
         })
 
     access_methods = {
         'inputs': {
-            'target_volumes': 'set_target_volumes'
+            'target_volumes': 'set_target_volumes',
+            'split_thresholds': 'set_split_thresholds'
         },
         'outputs': {
             'cell_ids': 'cell_ids',
             'mask': 'cell_mask',
+            'divided_cell_ids': 'divided_cell_ids'
         }
     }
     service_name = SERVICE_NAME
@@ -116,11 +155,14 @@ class CC3DProcess(SimServiceProcess):
         self._specs = {'dim': config['dim']}
         self._initial_mask = config['initial_mask']
         self._init_cell_volume_target = config['init_cell_volume_target']
+        self._init_split_threshold = config['init_split_threshold']
         super().__init__(config, core)
 
     def inputs(self):
         return {
-            'target_volumes': 'map[float]'}
+            'target_volumes': 'map[float]',
+            'split_thresholds': 'map[float]'
+        }
 
     def outputs(self):
         return {
@@ -133,6 +175,10 @@ class CC3DProcess(SimServiceProcess):
                 '_shape': (self.config['dim'][0], self.config['dim'][1]),
                 '_data': 'integer',
                 '_apply': 'set',
+            },
+            'divided_cell_ids': {
+                '_type': 'parent_child_ids',
+                '_apply': 'set'
             }
         }
 
@@ -145,6 +191,7 @@ class CC3DProcess(SimServiceProcess):
         while True:
             try:
                 self.service.set_initial_target_volume(self._init_cell_volume_target)
+                self.service.set_initial_split_threshold(self._init_split_threshold)
                 break
             except AttributeError:
                 pass
@@ -173,6 +220,7 @@ def run_cc3d_alone():
     initial_mask = np.zeros(dim, dtype=int)
     initial_mask[10:15, 10:15] = 1
     init_cell_volume_target = 25.0
+    init_split_threshold = 50.0
 
     composite = {
         'cc3d': {
@@ -182,6 +230,7 @@ def run_cc3d_alone():
                 'dim': dim,
                 'initial_mask': initial_mask,
                 'init_cell_volume_target': init_cell_volume_target,
+                'init_split_threshold': init_split_threshold,
                 'process_config': {
                     'disable_ports': {
                         'inputs': [],

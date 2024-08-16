@@ -74,6 +74,24 @@ class TissueForgeProcess(SimServiceProcess):
             'domains': 'domains'
         }
 
+    def _handle_split_prototype(self, mask, parent_id: int, child_id: int, growth_rate: int):
+        # Prototyping the procedure for splitting a cell and taking the child to a new service.
+        # Not really intended for deployment; just outlining the procedures to spawn a new
+        # service with a newly created cell while taking the newly created cell from its
+        # parent cell in this service.
+
+        from simservice.service_factory import process_factory
+
+        child_service = process_factory(self.service_name, *[], **self.simservice_config)
+        child_service.run()
+        child_service.init()
+        child_service.start()
+
+        child_domain = self.service.divide_cell_and_take(mask, parent_id, child_id)
+        child_service.add_set_domain(child_id, mask, child_domain, growth_rate)
+
+        return child_service
+
 
 def run_tissue_forge_alone():
     core = ProcessTypes()

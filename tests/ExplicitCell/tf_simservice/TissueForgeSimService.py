@@ -1,4 +1,5 @@
 import random
+import warnings
 
 import numpy as np
 from simservice.PySimService import PySimService
@@ -7,6 +8,9 @@ from typing import Dict, List, Optional, Tuple
 
 
 def_refinements = 4
+
+Position = Tuple[float, float, float]
+Domain = Tuple[List[Position], List[Position]]
 
 
 class BoundaryType(tf.ParticleTypeSpec):
@@ -193,6 +197,33 @@ def internal_positions(cell_id: int,
             k = i * n_pos + j
             int_pos[k][:] = mask_pos_x[j] + dx, mask_pos_y[j] + dy
     return int_pos
+
+
+def discrete_positions(positions: List[tf.FVector3]) -> np.ndarray:
+    result = np.ndarray((len(positions), 2), dtype=int)
+    for i, p in enumerate(positions):
+        result[i, :] = np.asarray(p.xy(), dtype=int)
+    return result
+
+
+def position_domains(positions: List[tf.FVector3], mask: np.ndarray) -> np.ndarray:
+    dpos = discrete_positions(positions)
+    return np.take(mask, np.ravel_multi_index(np.hsplit(dpos, 2), mask.shape))[:, 0]
+
+
+def map_positions_by_domain(positions: List[tf.FVector3], mask: np.ndarray) -> Dict[int, List[int]]:
+    tags = position_domains(positions, mask)
+    unique_ids = np.nonzero(np.unique(mask))
+    result = {i: [] for i in unique_ids}
+    for i, t in enumerate(tags):
+        result[t].append(i)
+    return result
+
+
+def find_positions_in_domain(positions: List[tf.FVector3], mask: np.ndarray, domain_int: int) -> List[int]:
+    mask_copy = np.array(mask, dtype=int)
+    mask_copy[mask_copy != domain_int] = 0
+    return map_positions_by_domain(positions, mask_copy)[domain_int]
 
 
 def identify_outline_partners(current_positions: np.ndarray,
@@ -483,6 +514,40 @@ class TissueForgeSimService(PySimService):
         self.growth_rates[cell_id] = growth_rate
         self.next_mask = mask
 
+    def add_set_domain(self, cell_id: int, mask: np.ndarray, cell_domain: Domain, growth_rate: int):
+        """
+        Adds a cell with a given domain.
+
+        todo: add check for consistency between given mask and domain
+
+        :param cell_id: id of cell to add
+        :param mask: current mask
+        :param cell_domain: given domain to implement
+        :param growth_rate: growth rate to assign
+        """
+
+        if cell_id in self.domains:
+            warnings.warn(f'New domain clashes with known cell id: {cell_id}')
+            return
+
+        # Create new cluster
+        boundary_type = BoundaryType.get()
+        internal_type = InternalType.get()
+        domain_data = DomainData()
+
+        # Generate boundary and internal particles
+        outline, int_pos = cell_domain
+        for p in outline:
+            domain_data.boundary_ids.append(boundary_type(position=tf.FVector3(p[0], p[1], tf.Universe.center[2]),
+                                                          velocity=tf.FVector3(0)).id)
+        for p in int_pos:
+            domain_data.internal_ids.append(internal_type(position=tf.FVector3(p[0], p[1], tf.Universe.center[2]),
+                                                          velocity=tf.FVector3(0)).id)
+
+        self.domains[cell_id] = domain_data
+        self.growth_rates[cell_id] = growth_rate
+        self.next_mask = mask
+
     def equilibrate(self, num_steps=10000):
         """Equilibrates the simulation."""
         return tf.step(num_steps * tf.Universe.dt)
@@ -507,3 +572,100 @@ class TissueForgeSimService(PySimService):
                 print('Cell id not known:', cell_id_int)
                 continue
             self.growth_rates[cell_id_int] = growth_rate
+
+    def divide_cells(self, mask: np.ndarray, parent_child_map: List[Tuple[int, int]]):
+        """
+        Divides a cell and keeps all cellular particles in this service.
+
+        Assumes that the growth rate of the child is the same as the parent.
+
+        :param mask: cell mask to implement
+        :param parent_child_map: parent-child id pairs from division to implement
+        """
+
+        boundary_type = BoundaryType.get()
+
+        for parent_id, child_id in parent_child_map:
+
+            parent_domain_data = self.domains[parent_id]
+            child_domain_data = DomainData()
+
+            # Generate outlines
+            parent_outline = generate_outline(parent_id, mask, (self.coords_x, self.coords_y))
+            child_outline = generate_outline(child_id, mask, (self.coords_x, self.coords_y))
+            for _ in range(self.num_refinements):
+                parent_outline = refine_outline(parent_outline)
+                child_outline = refine_outline(child_outline)
+            parent_outline = parent_outline[outline_winding(parent_outline)]
+            child_outline = child_outline[outline_winding(child_outline)]
+
+            # Generate new outline for parent and child based on new mask
+            for pid in parent_domain_data.boundary_ids:
+                tf.ParticleHandle(pid).destroy()
+            parent_domain_data.boundary_ids.clear()
+            for p in parent_outline:
+                parent_domain_data.boundary_ids.append(boundary_type(position=tf.FVector3(p[0], p[1],
+                                                                                          tf.Universe.center[2]),
+                                                                     velocity=tf.FVector3(0)).id)
+            for p in child_outline:
+                child_domain_data.boundary_ids.append(boundary_type(position=tf.FVector3(p[0], p[1],
+                                                                                         tf.Universe.center[2]),
+                                                                    velocity=tf.FVector3(0)).id)
+
+            # Find current internal particles and move to child as appropriate
+            p_internal_positions = [tf.ParticleHandle(pid).position for pid in parent_domain_data.internal_ids]
+            c_internal_pos_indices = find_positions_in_domain(p_internal_positions, mask, child_id)
+            c_internal_pos_indices.sort()
+            c_internal_pos_indices.reverse()
+            child_domain_data.internal_ids = [parent_domain_data.internal_ids.pop(i) for i in c_internal_pos_indices]
+            child_domain_data.internal_ids.reverse()
+
+            self.domains[child_id] = child_domain_data
+            self.growth_rates[child_id] = self.growth_rates[parent_id]
+
+        self.next_mask = mask
+
+    def divide_cell_and_take(self, mask: np.ndarray, parent_id: int, child_id: int) -> Domain:
+        """
+        Divides a cell and returns the domain of the implemented child cell. Ownership of the child is released.
+
+        :param mask: cell mask to implement
+        :param parent_id: id of parent cell
+        :param child_id: id of child cell
+        :return: domain of child cell
+        """
+
+        boundary_type = BoundaryType.get()
+
+        parent_domain_data = self.domains[parent_id]
+
+        # Generate outlines
+        parent_outline = generate_outline(parent_id, mask, (self.coords_x, self.coords_y))
+        child_outline = generate_outline(child_id, mask, (self.coords_x, self.coords_y))
+        for _ in range(self.num_refinements):
+            parent_outline = refine_outline(parent_outline)
+            child_outline = refine_outline(child_outline)
+        parent_outline = parent_outline[outline_winding(parent_outline)]
+        child_outline = child_outline[outline_winding(child_outline)]
+
+        # Generate new outline for parent based on new mask
+        for pid in parent_domain_data.boundary_ids:
+            tf.ParticleHandle(pid).destroy()
+        parent_domain_data.boundary_ids.clear()
+        for p in parent_outline:
+            parent_domain_data.boundary_ids.append(boundary_type(position=tf.FVector3(p[0], p[1],
+                                                                                      tf.Universe.center[2]),
+                                                                 velocity=tf.FVector3(0)).id)
+
+        # Find current internal particles and release to child as appropriate
+        p_internal_positions = [tf.ParticleHandle(pid).position for pid in parent_domain_data.internal_ids]
+        c_internal_pos_indices = find_positions_in_domain(p_internal_positions, mask, child_id)
+        c_internal_pos_indices.sort()
+        child_internal_positions = [p_internal_positions[i] for i in c_internal_pos_indices]
+        c_internal_pos_indices.reverse()
+        for i in c_internal_pos_indices:
+            tf.ParticleHandle(parent_domain_data.internal_ids.pop(i)).destroy()
+
+        self.next_mask = mask
+
+        return child_outline, child_internal_positions
