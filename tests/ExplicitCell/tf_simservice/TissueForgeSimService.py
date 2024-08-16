@@ -11,6 +11,7 @@ def_refinements = 4
 
 Position = Tuple[float, float, float]
 Domain = Tuple[List[Position], List[Position]]
+ParentChildPair = Tuple[int, int]
 
 
 class BoundaryType(tf.ParticleTypeSpec):
@@ -552,12 +553,12 @@ class TissueForgeSimService(PySimService):
         """Equilibrates the simulation."""
         return tf.step(num_steps * tf.Universe.dt)
 
-    def get_domains(self):
+    def get_domains(self) -> Dict[str, Domain]:
         """Gets the boundary and internal particles of each domain"""
         result = {}
         for domain_id, domain_data in self.domains.items():
-            boundary_pos = [tf.ParticleHandle(pid).position.as_list() for pid in domain_data.boundary_ids]
-            internal_pos = [tf.ParticleHandle(pid).position.as_list() for pid in domain_data.internal_ids]
+            boundary_pos = [tuple(tf.ParticleHandle(pid).position.as_list()) for pid in domain_data.boundary_ids]
+            internal_pos = [tuple(tf.ParticleHandle(pid).position.as_list()) for pid in domain_data.internal_ids]
             # todo: process-bigraph requires keys to be strings: hierarchy_depth assumes that all keys are strings;
             #  probably not a conducive requirement for general interoperability.
             result[str(domain_id)] = boundary_pos, internal_pos
@@ -573,7 +574,7 @@ class TissueForgeSimService(PySimService):
                 continue
             self.growth_rates[cell_id_int] = growth_rate
 
-    def divide_cells(self, mask: np.ndarray, parent_child_map: List[Tuple[int, int]]):
+    def divide_cells(self, mask: np.ndarray, parent_child_map: List[ParentChildPair]):
         """
         Divides a cell and keeps all cellular particles in this service.
 
@@ -647,6 +648,7 @@ class TissueForgeSimService(PySimService):
             child_outline = refine_outline(child_outline)
         parent_outline = parent_outline[outline_winding(parent_outline)]
         child_outline = child_outline[outline_winding(child_outline)]
+        child_boundary_positions = [(p[0], p[1], tf.Universe.center[2]) for p in child_outline]
 
         # Generate new outline for parent based on new mask
         for pid in parent_domain_data.boundary_ids:
@@ -661,11 +663,11 @@ class TissueForgeSimService(PySimService):
         p_internal_positions = [tf.ParticleHandle(pid).position for pid in parent_domain_data.internal_ids]
         c_internal_pos_indices = find_positions_in_domain(p_internal_positions, mask, child_id)
         c_internal_pos_indices.sort()
-        child_internal_positions = [p_internal_positions[i] for i in c_internal_pos_indices]
+        child_internal_positions = [tuple(p_internal_positions[i].as_list()) for i in c_internal_pos_indices]
         c_internal_pos_indices.reverse()
         for i in c_internal_pos_indices:
             tf.ParticleHandle(parent_domain_data.internal_ids.pop(i)).destroy()
 
         self.next_mask = mask
 
-        return child_outline, child_internal_positions
+        return child_boundary_positions, child_internal_positions
