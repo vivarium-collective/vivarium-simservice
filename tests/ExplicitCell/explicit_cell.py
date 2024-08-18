@@ -20,6 +20,7 @@ cell_manager = {
     }
 }
 """
+import json
 import os
 from process_bigraph import Composite, ProcessTypes
 import imageio.v2 as imageio
@@ -452,12 +453,36 @@ def get_one_cell_two_direction_config(
     }
 
     # combine all the specs
-    return {
+    document = {
         **tissue_forge_config_dict,
         **compucell_config_dict,
         **volume_config,
         **ram_emitter_config
     }
+
+    return document
+
+
+def save_composite_doc(
+        composite,
+        core,
+        filename='one_cell_two_directions.json',
+        outdir='out',
+):
+    # serialized
+    serialized_doc = core.serialize(
+        schema=composite.composition,
+        state=composite.state,
+    )
+
+    # Save the dictionary to a JSON file
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    filename = os.path.join(outdir, filename)
+    # Now, write the new data to the file
+    with open(filename, 'w') as json_file:
+        json.dump(serialized_doc, json_file, indent=4)
+        print(f"Created new file: {filename}")
 
 
 def test_one_cell_two_directions(core):
@@ -468,6 +493,9 @@ def test_one_cell_two_directions(core):
         {'state': composite},
         core=core
     )
+
+    # save document
+    save_composite_doc(sim, core)
 
     # run it
     sim.run(60)
