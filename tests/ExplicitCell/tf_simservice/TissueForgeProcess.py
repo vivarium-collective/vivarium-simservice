@@ -66,13 +66,24 @@ class TissueForgeProcess(SimServiceProcess):
                 '_value': {
                     '_type': 'int'
                 }
-            }
+            },
+            'division': 'maybe[integer]',
         }
 
     def outputs(self):
         return {
             'domains': 'domains'
+            'division_data': .....
         }
+
+
+    def update(self, inputs, interval):
+        if inputs['division']:
+            division_data = self.service.divide_cell_and_take(
+                inputs['mask'],
+                self.config['cell_id'],
+                inputs['division'])
+
 
     def _handle_split_prototype(self, mask, parent_id: int, child_id: int, growth_rate: int):
         # Prototyping the procedure for splitting a cell and taking the child to a new service.
