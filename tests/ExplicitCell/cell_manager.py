@@ -12,9 +12,9 @@ class CellManager(Step):
 
     def inputs(self):
         return {
-            'domain_mapping': 'map[domains]',
-            'divided_cells': 'list[tuple[integer,integer]]',
-            'tissue_processes': 'map[process]'
+            # 'domain_mapping': 'map[domains]',
+            'tissue_processes': 'map[process]',
+            'divided_cells': 'parent_child_ids',
             'mask': {
                 '_type': 'array',
                 '_shape': self.config['dimensions'],

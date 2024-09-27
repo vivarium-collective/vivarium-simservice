@@ -337,7 +337,7 @@ def get_one_cell_two_direction_config(
     dim=(30, 30, 30),
     cells=(6, 6, 6),
     init_cell_volume_target=100.0,
-    init_split_threshold=200.0
+    init_split_threshold=10.0
 ):
     # Create the specs for a CC3D simulation
 
@@ -403,7 +403,9 @@ def get_one_cell_two_direction_config(
                 }
             },
             'inputs': {
-                'mask': ['mask_store']
+                'mask': ['mask_store'],
+                'growth_rates': ['growth_rates_store'],
+                'division': ['divided_cell_ids_store', cell_id],
             },
             'outputs': {
                 'domains': ['domains_store']

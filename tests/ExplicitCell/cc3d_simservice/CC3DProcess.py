@@ -123,8 +123,15 @@ class InterfaceSteppable(MitosisSteppableBase):
     def set_initial_split_threshold(self, _split_threshold: float):
         self.init_split_threshold = _split_threshold
 
-    def divided_cell_ids(self) -> List[Tuple[int, int]]:
-        return self._new_cell_ids
+    def divided_cell_ids(self) -> Dict[int, int]:
+    # def divided_cell_ids(self) -> List[Tuple[int, int]]:
+        new_cells = {
+            key: value
+            for key, value in self._new_cell_ids}
+
+        return {
+            cell.id: new_cells.get(cell.id)
+            for cell.id in self.cell_list}
 
 
 class CC3DProcess(SimServiceProcess):
@@ -176,10 +183,7 @@ class CC3DProcess(SimServiceProcess):
                 '_data': 'integer',
                 '_apply': 'set',
             },
-            'divided_cell_ids': {
-                '_type': 'parent_child_ids',
-                '_apply': 'set'
-            }
+            'divided_cell_ids': 'cell_divisions',
         }
 
     def pre_run(self, config=None):

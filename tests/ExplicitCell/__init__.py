@@ -22,7 +22,23 @@ def register_types(core):
         }
     )
 
+    
+    core.register('cell_id', 'integer')
+
+
     core.register(
-        'parent_child_ids',
-        'list[tuple[int,int]]'
-    )
+        'cell_divisions',
+        'dictionary[cell_id,maybe[cell_id]]')
+
+
+    core.register('parent_child_ids', {
+        '_type': 'list[tuple[cell_id,cell_id]]',
+        '_apply': 'set')
+
+
+
+
+
+divisions = {
+    'tissue_forge_cell_id': 'child_id',
+    'another_tf_id': 'other_child_id'}

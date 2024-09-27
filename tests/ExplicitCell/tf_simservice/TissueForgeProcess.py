@@ -61,19 +61,15 @@ class TissueForgeProcess(SimServiceProcess):
                 '_data': 'integer',
                 '_apply': 'set',
             },
-            'growth_rates': {
-                '_type': 'map',
-                '_value': {
-                    '_type': 'int'
-                }
-            },
-            'division': 'maybe[integer]',
+            # TODO: this may need a default?
+            'growth_rates': 'map[integer]',
+            'division': 'maybe[cell_id]',
         }
 
     def outputs(self):
         return {
             'domains': 'domains'
-            'division_data': .....
+            'division_data': '?',
         }
 
 
