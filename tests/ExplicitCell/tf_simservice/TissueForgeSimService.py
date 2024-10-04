@@ -671,3 +671,7 @@ class TissueForgeSimService(PySimService):
         self.next_mask = mask
 
         return child_boundary_positions, child_internal_positions
+
+    def spawn_args(self):
+        """Returns constructor arguments to initialize another instance with the same configuration."""
+        return self.dim, self.cells, self.per_dim, self.num_steps, self.num_refinements
