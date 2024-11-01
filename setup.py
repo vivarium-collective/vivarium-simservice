@@ -20,7 +20,7 @@ with open("README.md", "r") as readme:
 setup(
     name="vivarium-simservice",
     version=VERSION,
-    author="TJ Sego, Ryan Spangler, Eran Agmon",
+    author="T.J. Sego, Ryan Spangler, Eran Agmon",
     author_email="timothy.sego@medicine.ufl.edu, ryan.spangler@gmail.com, agmon.eran@gmail.com",
     description="",
     long_description=long_description,
@@ -33,9 +33,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
