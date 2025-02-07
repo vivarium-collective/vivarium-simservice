@@ -63,15 +63,16 @@ class SimServiceProcess(Process):
     def update(self, inputs, interval):
         # print(type(self), inputs)
         # set the inputs
-        for key, value in inputs.items():
-            # skip disabled ports
-            if key in self.process_config['disable_ports']['inputs']:
-                continue
-
-            # retrieve the set method and call it
-            method = self.access_methods['inputs'][key]
-            set_method = getattr(self.service, method)
-            set_method(value)
+        if inputs:
+            for key, value in inputs.items():
+                # skip disabled ports
+                if key in self.process_config['disable_ports']['inputs']:
+                    continue
+    
+                # retrieve the set method and call it
+                method = self.access_methods['inputs'][key]
+                set_method = getattr(self.service, method)
+                set_method(value)
 
         # step the sim service
         self.service.step()
